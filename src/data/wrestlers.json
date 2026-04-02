@@ -1,0 +1,16 @@
+[
+  {
+    "id": "stone_cold",
+    "name": "Stone Cold Steve Austin",
+    "nickname": "The Texas Rattlesnake",
+    "attributes": {
+      "strength": 85,
+      "agility": 72,
+      "stamina": 90,
+      "technical": 78,
+      "charisma": 95
+    },
+    "finisher": "stunner",
+    "sprite": "stone_cold.png"
+  }
+]

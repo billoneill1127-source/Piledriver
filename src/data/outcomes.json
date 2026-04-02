@@ -1,0 +1,13 @@
+[
+  {
+    "id": "clean_hit",
+    "condition": "accuracy_check_pass",
+    "damage_multiplier": 1.0,
+    "commentary": [
+      "{attacker} connects with {move}!",
+      "{attacker} lands {move} clean!"
+    ],
+    "momentum_delta": 10,
+    "crowd_reaction": "cheer"
+  }
+]

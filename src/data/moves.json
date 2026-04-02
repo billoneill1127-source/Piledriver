@@ -1,0 +1,13 @@
+[
+  {
+    "id": "stunner",
+    "name": "Stone Cold Stunner",
+    "type": "finisher",
+    "damage": { "base": 40, "variance": 10 },
+    "stamina_cost": 20,
+    "accuracy": 0.85,
+    "effects": ["stun"],
+    "requires_setup": false,
+    "animation": "stunner_anim"
+  }
+]
