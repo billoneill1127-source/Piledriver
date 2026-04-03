@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { MatchEvents }   from '../engine/MatchEvents.js';
 import { WrestlerSprite } from '../sprites/WrestlerSprite.js';
+import { MoveAnimator }  from '../sprites/MoveAnimator.js';
 
 /**
  * Factory that closes over wrestler data so the scene doesn't rely on
@@ -43,6 +44,8 @@ export function createMatchScene(p1Data, p2Data) {
       this.p2Sprite = new WrestlerSprite(this, P2_X, MAT_BOTTOM, p2Data, 'left');
       this.add.existing(this.p1Sprite);
       this.add.existing(this.p2Sprite);
+
+      this._animator = new MoveAnimator(this, this.p1Sprite, this.p2Sprite, p1Data, p2Data);
 
       // ── Name labels ──────────────────────────────────────────────────────
       const txtStyle = { fontFamily: 'monospace', fontSize: '10px' };
@@ -88,27 +91,7 @@ export function createMatchScene(p1Data, p2Data) {
 
       const unsubTurnResult = MatchEvents.on('turnResult', (res) => {
         try {
-          // Lunge tween for successful attacks
-          if (res.result === 'success') {
-            const atkSprite = res.attackerId === p1Data.id ? this.p1Sprite : this.p2Sprite;
-            if (atkSprite?.active) {
-              const dir    = res.attackerId === p1Data.id ? 1 : -1;
-              const startX = atkSprite.x;
-              this.tweens.killTweensOf(atkSprite);
-              this.tweens.add({
-                targets:  atkSprite,
-                x:        startX + dir * 15,
-                duration: 120,
-                ease:     'Quad.easeOut',
-                yoyo:     true,
-              });
-            }
-          }
-
-          // Apply resting states after animations settle (hit flash = 200ms,
-          // lunge = 240ms — 300ms clears both).
-          // When MoveAnimator exists, migrate this to the 'animationComplete' event.
-          this.time.delayedCall(300, () => {
+          this._animator.animate(res, () => {
             try { this._applyRestingStates(res); }
             catch (err) { console.error('[MatchScene] _applyRestingStates threw:', err); }
           });

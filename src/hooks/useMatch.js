@@ -6,10 +6,13 @@
  * to the Phaser layer via MatchEvents.
  *
  * Phase state machine:
- *   'selecting'  — awaiting move selections (human + optional CPU)
- *   'pin_prompt' — pin YES/NO offered to the offensive player
- *   'result'     — result banner visible (1500 ms)
- *   'match_over' — terminal
+ *   'selecting'         — awaiting move selections (human + optional CPU)
+ *   'pin_prompt'        — pin YES/NO offered to the offensive player
+ *   'result'            — result banner visible (1500 ms, or 2000 ms for
+ *                         submission wins, or 1000 ms for submission escapes)
+ *   'submission_drama'  — second dramatic beat for double-check submissions
+ *                         (2000 ms) before transitioning to match_over
+ *   'match_over'        — terminal
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -25,8 +28,14 @@ import { MatchEvents }     from '../engine/MatchEvents.js';
 // ── Result description ─────────────────────────────────────────────────────
 
 function describeResult(r, loader) {
-  if (r.pinResult === true)        return `${r.attackerName} pins ${r.defenderName}! 1...2...3!`;
-  if (r.submissionResult === true) return `${r.attackerName} wins by SUBMISSION!`;
+  if (r.pinResult === true) return `${r.attackerName} pins ${r.defenderName}! 1...2...3!`;
+
+  // Submission win: first drama banner depends on whether it's a double-check
+  if (r.submissionResult === true) {
+    return r.isDoubleCheckSub
+      ? `${r.defenderName} is fading...`
+      : `${r.defenderName} can't get out of it!`;
+  }
 
   const parts = [];
   if (r.pinOffered && r.pinResult === false) parts.push(`${r.defenderName} kicks out!`);
@@ -81,6 +90,7 @@ export function useMatch({ p1, p2, p2IsCPU }) {
   const [log, setLog] = useState([]);
   const [pendingOffense, setPendingOffense] = useState(null);
   const [pendingDefense, setPendingDefense] = useState(null);
+  const [winNote, setWinNote] = useState(null);
 
   // Guard: prevents double-execute in React StrictMode
   const executingRef = useRef(false);
@@ -123,15 +133,20 @@ export function useMatch({ p1, p2, p2IsCPU }) {
     const counterMove = res.result === 'reversal' && offMove?.counter_move
       ? loader.getMove(offMove.counter_move)
       : null;
+    // Double-check submission: attacker brains > defender brains (see MatchState)
+    const isDoubleCheckSub = res.submissionResult === true &&
+      attacker.attrs.brains > defender.attrs.brains;
     const enriched = {
       ...res,
-      offenseMoveId:   offId,
-      defenseMoveId:   defId,
-      attackerId:      preOffenseId,
-      defenderId:      preDefenseId,
-      attackerName:    preAttackerName,
-      defenderName:    preDefenderName,
-      counterMoveName: counterMove?.name ?? 'Counter Move',
+      offenseMoveId:    offId,
+      defenseMoveId:    defId,
+      attackerId:       preOffenseId,
+      defenderId:       preDefenseId,
+      attackerName:     preAttackerName,
+      defenderName:     preDefenderName,
+      counterMoveName:  counterMove?.name ?? 'Counter Move',
+      offMoveCategory:  offMove?.category ?? 'strike',
+      isDoubleCheckSub,
     };
     enriched.description = describeResult(enriched, loader);
 
@@ -146,6 +161,7 @@ export function useMatch({ p1, p2, p2IsCPU }) {
 
     if (res.matchOver && res.winner) {
       setWinner(res.winner);
+      if (res.submissionResult === true) setWinNote('by SUBMISSION');
     }
 
     // Emit Phaser events
@@ -167,27 +183,36 @@ export function useMatch({ p1, p2, p2IsCPU }) {
       });
     }
 
-    // Advance phase after result banner (1500 ms)
+    // Result banner duration — varies by outcome
+    const isSubEscape = offMove?.is_submission && !res.matchOver && res.result === 'escape';
+    const resultDuration = enriched.submissionResult === true ? (isDoubleCheckSub ? 1500 : 2000)
+      : isSubEscape ? 1000
+      : 1500;
+
+    // Advance phase after result banner
     setTimeout(() => {
       executingRef.current = false;
       if (res.matchOver) {
-        setPhase('match_over');
+        if (isDoubleCheckSub) {
+          // Second drama beat: "can't get out of it!" for 2000ms then match over
+          setPhase('submission_drama');
+          setTimeout(() => setPhase('match_over'), 2000);
+        } else {
+          setPhase('match_over');
+        }
       } else {
         setPhase(tm.checkPinOpportunity() ? 'pin_prompt' : 'selecting');
       }
-    }, 1500);
+    }, resultDuration);
 
-    // Hard safety-net: if something in the Phaser layer threw and the
-    // executing flag was never cleared, force-unlock after 3000 ms so
-    // the game doesn't freeze permanently. The console.warn makes this
-    // visible in the browser so the root cause can be identified.
+    // Hard safety-net: force-unlock after 5000 ms to prevent permanent freeze.
     setTimeout(() => {
       if (executingRef.current) {
-        console.warn('[useMatch] Safety-net fired — executingRef was still true after 3 s. Forcing phase advance.');
+        console.warn('[useMatch] Safety-net fired — executingRef was still true after 5 s. Forcing phase advance.');
         executingRef.current = false;
         setPhase(res.matchOver ? 'match_over' : 'selecting');
       }
-    }, 3000);
+    }, 5000);
   }
 
   // ── CPU auto-selection ───────────────────────────────────────────────────
@@ -251,6 +276,7 @@ export function useMatch({ p1, p2, p2IsCPU }) {
     phase,
     matchOver,
     winner,
+    winNote,
     turnCount,
     log,
     lastResult,

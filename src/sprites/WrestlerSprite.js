@@ -28,6 +28,7 @@ export class WrestlerSprite extends Phaser.GameObjects.Container {
     this._wrestler = wrestler;
     this._facing   = facing;
     this._state    = 'idle';
+    this._baseX    = x;
     this._baseY    = y;
     this._tweens   = [];
 

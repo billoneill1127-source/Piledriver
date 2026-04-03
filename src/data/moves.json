@@ -1,13 +1,364 @@
 [
   {
-    "id": "stunner",
-    "name": "Stone Cold Stunner",
-    "type": "finisher",
-    "damage": { "base": 40, "variance": 10 },
-    "stamina_cost": 20,
-    "accuracy": 0.85,
-    "effects": ["stun"],
-    "requires_setup": false,
-    "animation": "stunner_anim"
+    "id": "block",
+    "name": "Block",
+    "type": "Defense",
+    "requirements": {
+      "min_strength": 40,
+      "min_agility": 30,
+      "min_experience": 0
+    },
+    "is_submission": false,
+    "damage": 0,
+    "counter_move": null,
+    "adjust_by_offense_attr": null,
+    "adjust_by_defense_attr": null
+  },
+  {
+    "id": "retreat",
+    "name": "Retreat",
+    "type": "Defense",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 0,
+      "min_experience": 0
+    },
+    "is_submission": false,
+    "damage": 0,
+    "counter_move": null,
+    "adjust_by_offense_attr": null,
+    "adjust_by_defense_attr": null
+  },
+  {
+    "id": "lock_up",
+    "name": "Lock Up",
+    "type": "Defense",
+    "requirements": {
+      "min_strength": 40,
+      "min_agility": 10,
+      "min_experience": 30
+    },
+    "is_submission": false,
+    "damage": 0,
+    "counter_move": null,
+    "adjust_by_offense_attr": null,
+    "adjust_by_defense_attr": null
+  },
+  {
+    "id": "counter",
+    "name": "Counter",
+    "type": "Defense",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 30,
+      "min_experience": 40
+    },
+    "is_submission": false,
+    "damage": 0,
+    "counter_move": null,
+    "adjust_by_offense_attr": null,
+    "adjust_by_defense_attr": null
+  },
+  {
+    "id": "duck",
+    "name": "Duck",
+    "type": "Defense",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 40,
+      "min_experience": 30
+    },
+    "is_submission": false,
+    "damage": 0,
+    "counter_move": null,
+    "adjust_by_offense_attr": null,
+    "adjust_by_defense_attr": null
+  },
+  {
+    "id": "overpower",
+    "name": "Overpower",
+    "type": "Defense",
+    "requirements": {
+      "min_strength": 50,
+      "min_agility": 0,
+      "min_experience": 0
+    },
+    "is_submission": false,
+    "damage": 0,
+    "counter_move": null,
+    "adjust_by_offense_attr": null,
+    "adjust_by_defense_attr": null
+  },
+  {
+    "id": "punch",
+    "name": "Punch",
+    "type": "Offense",
+    "category": "strike",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 0,
+      "min_experience": 0
+    },
+    "is_submission": false,
+    "damage": 4,
+    "counter_move": "punch",
+    "adjust_by_offense_attr": "Speed",
+    "adjust_by_defense_attr": "Speed"
+  },
+  {
+    "id": "forearm",
+    "name": "Forearm",
+    "type": "Offense",
+    "category": "strike",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 0,
+      "min_experience": 0
+    },
+    "is_submission": false,
+    "damage": 5,
+    "counter_move": "punch",
+    "adjust_by_offense_attr": "Speed",
+    "adjust_by_defense_attr": "Speed"
+  },
+  {
+    "id": "headlock",
+    "name": "Headlock",
+    "type": "Offense",
+    "category": "grapple",
+    "requirements": {
+      "min_strength": 20,
+      "min_agility": 0,
+      "min_experience": 0
+    },
+    "is_submission": false,
+    "damage": 5,
+    "counter_move": "headlock",
+    "adjust_by_offense_attr": "Brains",
+    "adjust_by_defense_attr": "Brains"
+  },
+  {
+    "id": "kick",
+    "name": "Kick",
+    "type": "Offense",
+    "category": "strike",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 0,
+      "min_experience": 0
+    },
+    "is_submission": false,
+    "damage": 7,
+    "counter_move": "kick",
+    "adjust_by_offense_attr": "Speed",
+    "adjust_by_defense_attr": "Speed"
+  },
+  {
+    "id": "full_nelson",
+    "name": "Full Nelson",
+    "type": "Offense",
+    "category": "grapple",
+    "requirements": {
+      "min_strength": 60,
+      "min_agility": 20,
+      "min_experience": 20
+    },
+    "is_submission": true,
+    "damage": 10,
+    "counter_move": "belly_to_back_suplex",
+    "adjust_by_offense_attr": "Strength",
+    "adjust_by_defense_attr": "Strength"
+  },
+  {
+    "id": "bodyslam",
+    "name": "Bodyslam",
+    "type": "Offense",
+    "category": "slam",
+    "requirements": {
+      "min_strength": 40,
+      "min_agility": 0,
+      "min_experience": 20
+    },
+    "is_submission": false,
+    "damage": 10,
+    "counter_move": "headlock",
+    "adjust_by_offense_attr": "Strength",
+    "adjust_by_defense_attr": "Size"
+  },
+  {
+    "id": "boston_crab",
+    "name": "Boston Crab",
+    "type": "Offense",
+    "category": "grapple",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 0,
+      "min_experience": 40
+    },
+    "is_submission": true,
+    "damage": 10,
+    "counter_move": "figure_four",
+    "adjust_by_offense_attr": "Brains",
+    "adjust_by_defense_attr": "Brains"
+  },
+  {
+    "id": "figure_four",
+    "name": "Figure Four",
+    "type": "Offense",
+    "category": "grapple",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 0,
+      "min_experience": 40
+    },
+    "is_submission": true,
+    "damage": 10,
+    "counter_move": "figure_four",
+    "adjust_by_offense_attr": "Brains",
+    "adjust_by_defense_attr": "Brains"
+  },
+  {
+    "id": "belly_to_back_suplex",
+    "name": "Belly-to-back Suplex",
+    "type": "Offense",
+    "category": "slam",
+    "requirements": {
+      "min_strength": 40,
+      "min_agility": 0,
+      "min_experience": 30
+    },
+    "is_submission": false,
+    "damage": 12,
+    "counter_move": "back_body_drop",
+    "adjust_by_offense_attr": "Strength",
+    "adjust_by_defense_attr": "Size"
+  },
+  {
+    "id": "back_body_drop",
+    "name": "Back Body Drop",
+    "type": "Offense",
+    "category": "aerial",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 40,
+      "min_experience": 30
+    },
+    "is_submission": false,
+    "damage": 12,
+    "counter_move": "super_kick",
+    "adjust_by_offense_attr": "Agility",
+    "adjust_by_defense_attr": "Agility"
+  },
+  {
+    "id": "sleeper",
+    "name": "Sleeper",
+    "type": "Offense",
+    "category": "grapple",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 40,
+      "min_experience": 60
+    },
+    "is_submission": true,
+    "damage": 12,
+    "counter_move": "back_body_drop",
+    "adjust_by_offense_attr": "Strength",
+    "adjust_by_defense_attr": "Brains"
+  },
+  {
+    "id": "super_kick",
+    "name": "Super Kick",
+    "type": "Offense",
+    "category": "strike",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 60,
+      "min_experience": 0
+    },
+    "is_submission": false,
+    "damage": 12,
+    "counter_move": "full_nelson",
+    "adjust_by_offense_attr": "Speed",
+    "adjust_by_defense_attr": "Speed"
+  },
+  {
+    "id": "standing_suplex",
+    "name": "Standing Suplex",
+    "type": "Offense",
+    "category": "slam",
+    "requirements": {
+      "min_strength": 50,
+      "min_agility": 0,
+      "min_experience": 30
+    },
+    "is_submission": false,
+    "damage": 15,
+    "counter_move": "standing_suplex",
+    "adjust_by_offense_attr": "Strength",
+    "adjust_by_defense_attr": "Size"
+  },
+  {
+    "id": "ddt",
+    "name": "DDT",
+    "type": "Offense",
+    "category": "slam",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 30,
+      "min_experience": 40
+    },
+    "is_submission": false,
+    "damage": 15,
+    "counter_move": "back_body_drop",
+    "adjust_by_offense_attr": "Brains",
+    "adjust_by_defense_attr": "Agility"
+  },
+  {
+    "id": "bulldog",
+    "name": "Bulldog",
+    "type": "Offense",
+    "category": "slam",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 40,
+      "min_experience": 30
+    },
+    "is_submission": false,
+    "damage": 15,
+    "counter_move": "belly_to_back_suplex",
+    "adjust_by_offense_attr": "Speed",
+    "adjust_by_defense_attr": "Agility"
+  },
+  {
+    "id": "destroyer",
+    "name": "Destroyer",
+    "type": "Offense",
+    "category": "slam",
+    "requirements": {
+      "min_strength": 0,
+      "min_agility": 70,
+      "min_experience": 30
+    },
+    "is_submission": false,
+    "damage": 17,
+    "counter_move": "back_body_drop",
+    "adjust_by_offense_attr": "Agility",
+    "adjust_by_defense_attr": "Size"
+  },
+  {
+    "id": "piledriver",
+    "name": "Piledriver",
+    "type": "Offense",
+    "category": "slam",
+    "requirements": {
+      "min_strength": 40,
+      "min_agility": 0,
+      "min_experience": 40
+    },
+    "is_submission": false,
+    "damage": 20,
+    "counter_move": "destroyer",
+    "adjust_by_offense_attr": "Strength",
+    "adjust_by_defense_attr": "Size"
   }
 ]

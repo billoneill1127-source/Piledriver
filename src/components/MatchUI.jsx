@@ -387,7 +387,7 @@ function MoveSelection({ p1, p2, p2IsCPU, match }) {
 
 // ── Match over overlay ────────────────────────────────────────────────────
 
-function MatchOverOverlay({ winner, p1, p2, onReturn }) {
+function MatchOverOverlay({ winner, p1, p2, onReturn, winNote }) {
   const winnerData = winner === p1.id ? p1 : p2;
   const winnerColor = winner === p1.id ? P1C : P2C;
 
@@ -408,6 +408,11 @@ function MatchOverOverlay({ winner, p1, p2, onReturn }) {
       <div style={{ color: GOLDC, fontSize: 18, letterSpacing: 8 }}>
         WINS!
       </div>
+      {winNote && (
+        <div style={{ color: '#c0c0c0', fontSize: 10, letterSpacing: 3, fontFamily: FONT }}>
+          {winNote}
+        </div>
+      )}
       <div style={{ width: 200, height: 1, background: '#2a2a4a', margin: '8px 0' }} />
       <button
         onClick={onReturn}
@@ -437,7 +442,7 @@ function MatchOverOverlay({ winner, p1, p2, onReturn }) {
 
 export default function MatchUI({ p1, p2, p2IsCPU, match, onReturn }) {
   const {
-    phase, stamina, offenseId, turnCount, winner, lastResult, log,
+    phase, stamina, offenseId, turnCount, winner, winNote, lastResult, log,
     p1IsAttacker,
     availableOffenseMoves, availableDefenseMoves,
     handlePinDecision,
@@ -476,8 +481,15 @@ export default function MatchUI({ p1, p2, p2IsCPU, match, onReturn }) {
         <ResultBanner lastResult={lastResult} />
       )}
 
+      {phase === 'submission_drama' && lastResult && (
+        <ResultBanner lastResult={{
+          ...lastResult,
+          description: `${lastResult.defenderName} can't get out of it!`,
+        }} />
+      )}
+
       {phase === 'match_over' && (
-        <MatchOverOverlay winner={winner} p1={p1} p2={p2} onReturn={onReturn} />
+        <MatchOverOverlay winner={winner} p1={p1} p2={p2} onReturn={onReturn} winNote={winNote} />
       )}
 
       {/* Bottom HUD — hidden during match_over */}
