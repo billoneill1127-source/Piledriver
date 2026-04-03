@@ -167,7 +167,7 @@ export function useMatch({ p1, p2, p2IsCPU }) {
       });
     }
 
-    // Advance phase after banner
+    // Advance phase after result banner (1500 ms)
     setTimeout(() => {
       executingRef.current = false;
       if (res.matchOver) {
@@ -176,6 +176,18 @@ export function useMatch({ p1, p2, p2IsCPU }) {
         setPhase(tm.checkPinOpportunity() ? 'pin_prompt' : 'selecting');
       }
     }, 1500);
+
+    // Hard safety-net: if something in the Phaser layer threw and the
+    // executing flag was never cleared, force-unlock after 3000 ms so
+    // the game doesn't freeze permanently. The console.warn makes this
+    // visible in the browser so the root cause can be identified.
+    setTimeout(() => {
+      if (executingRef.current) {
+        console.warn('[useMatch] Safety-net fired — executingRef was still true after 3 s. Forcing phase advance.');
+        executingRef.current = false;
+        setPhase(res.matchOver ? 'match_over' : 'selecting');
+      }
+    }, 3000);
   }
 
   // ── CPU auto-selection ───────────────────────────────────────────────────

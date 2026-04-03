@@ -191,11 +191,8 @@ function PinPrompt({ defenderName, onDecision }) {
       zIndex: 10,
       minWidth: 300,
     }}>
-      <div style={{ color: GOLDC, fontSize: 16, letterSpacing: 3, marginBottom: 10, fontFamily: FONT }}>
+      <div style={{ color: GOLDC, fontSize: 16, letterSpacing: 3, marginBottom: 22, fontFamily: FONT }}>
         GO FOR THE PIN?
-      </div>
-      <div style={{ color: '#80808a', fontSize: 9, marginBottom: 22, fontFamily: FONT }}>
-        {defenderName} is exhausted (0 stamina)
       </div>
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
         <button
@@ -396,12 +393,13 @@ function MatchOverOverlay({ winner, p1, p2, onReturn }) {
 
   return (
     <div style={{
-      position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+      position: 'fixed',        // fixed so it sits above EVERYTHING including Phaser canvas
+      top: 0, left: 0, width: '100vw', height: '100vh',
       background: 'rgba(2, 2, 10, 0.92)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       gap: 16,
       pointerEvents: 'auto',
-      zIndex: 20,
+      zIndex: 9999,             // guaranteed top-most
       fontFamily: FONT,
     }}>
       <div style={{ color: winnerColor, fontSize: 26, fontWeight: 'bold', letterSpacing: 4, textShadow: `0 0 30px ${winnerColor}` }}>

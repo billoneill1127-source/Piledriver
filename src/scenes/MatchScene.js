@@ -52,35 +52,51 @@ export function createMatchScene(p1Data, p2Data) {
         { ...txtStyle, color: '#ff7777' }).setOrigin(0.5, 1);
 
       // ── MatchEvents listeners ─────────────────────────────────────────────
+      // All callbacks are wrapped in try/catch so any Phaser error is logged
+      // here and does NOT propagate up into React's event loop (which would
+      // unmount the entire app and produce a white screen).
+
       const unsubDamage = MatchEvents.on('damage', ({ wrestlerId }) => {
-        const sprite = wrestlerId === p1Data.id ? this.p1Sprite : this.p2Sprite;
-        if (sprite?.active) sprite.setState('hit');
+        try {
+          const sprite = wrestlerId === p1Data.id ? this.p1Sprite : this.p2Sprite;
+          if (sprite?.active) sprite.setState('hit');
+        } catch (err) {
+          console.error('[MatchScene] damage handler threw:', err);
+        }
       });
 
       const unsubTurnResult = MatchEvents.on('turnResult', (res) => {
-        if (res.result !== 'success') return;
-        // Attacker lunges 15 px toward opponent then springs back
-        const atkSprite = res.attackerId === p1Data.id ? this.p1Sprite : this.p2Sprite;
-        if (!atkSprite?.active) return;
-        const dir = res.attackerId === p1Data.id ? 1 : -1;
-        const startX = atkSprite.x;
-        this.tweens.add({
-          targets:  atkSprite,
-          x:        startX + dir * 15,
-          duration: 120,
-          ease:     'Quad.easeOut',
-          yoyo:     true,
-        });
+        try {
+          if (res.result !== 'success') return;
+          const atkSprite = res.attackerId === p1Data.id ? this.p1Sprite : this.p2Sprite;
+          if (!atkSprite?.active) return;
+          const dir = res.attackerId === p1Data.id ? 1 : -1;
+          const startX = atkSprite.x;
+          // Kill any leftover position tweens before starting a new lunge
+          this.tweens.killTweensOf(atkSprite);
+          this.tweens.add({
+            targets:  atkSprite,
+            x:        startX + dir * 15,
+            duration: 120,
+            ease:     'Quad.easeOut',
+            yoyo:     true,
+          });
+        } catch (err) {
+          console.error('[MatchScene] turnResult handler threw:', err);
+        }
       });
 
       const unsubMatchOver = MatchEvents.on('matchOver', ({ winner }) => {
-        const winnerSprite = winner === p1Data.id ? this.p1Sprite : this.p2Sprite;
-        const loserSprite  = winner === p1Data.id ? this.p2Sprite : this.p1Sprite;
-        if (winnerSprite?.active) winnerSprite.setState('victory');
-        if (loserSprite?.active)  loserSprite.setState('down');
-
-        const winnerName = winner === p1Data.id ? p1Data.name : p2Data.name;
-        this._showWinnerBanner(winnerName);
+        try {
+          const winnerSprite = winner === p1Data.id ? this.p1Sprite : this.p2Sprite;
+          const loserSprite  = winner === p1Data.id ? this.p2Sprite : this.p1Sprite;
+          if (winnerSprite?.active) winnerSprite.setState('victory');
+          if (loserSprite?.active)  loserSprite.setState('down');
+          const winnerName = winner === p1Data.id ? p1Data.name : p2Data.name;
+          this._showWinnerBanner(winnerName);
+        } catch (err) {
+          console.error('[MatchScene] matchOver handler threw:', err);
+        }
       });
 
       // Clean up listeners when scene shuts down
