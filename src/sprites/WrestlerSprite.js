@@ -62,12 +62,16 @@ export class WrestlerSprite extends Phaser.GameObjects.Container {
     this._clearTweens();
     this._resetTransform();
 
-    this._draw(state === 'victory' ? 'victory' : 'idle');
+    this._draw(
+      (state === 'victory' || state === 'celebrate') ? 'victory' : 'idle'
+    );
 
     switch (state) {
       case 'idle':      this._startIdle();      break;
       case 'hit':       this._startHit();       break;
       case 'down':      this._startDown();      break;
+      case 'stunned':   this._startStunned();   break;
+      case 'grounded':  this._startGrounded();  break;
       case 'victory':   this._startVictory();   break;
       case 'celebrate': this._startCelebrate(); break;
       default:          this._startIdle();
@@ -166,6 +170,30 @@ export class WrestlerSprite extends Phaser.GameObjects.Container {
     });
   }
 
+  _startStunned() {
+    // Lean forward toward center of ring — positive for right-facing, negative for left
+    this.angle = this._facing === 'right' ? 9 : -9;
+    // Slower, deeper bob: 4px over 1200ms (wobbly, dazed)
+    this._addTween({
+      y:        this._baseY - 4,
+      duration: 1200,
+      ease:     'Sine.easeInOut',
+      yoyo:     true,
+      repeat:   -1,
+    });
+  }
+
+  _startGrounded() {
+    // Same fall as 'down' — holds on the mat until next animation clears it
+    const targetAngle = this._facing === 'right' ? 90 : -90;
+    this._addTween({
+      angle:    targetAngle,
+      y:        this._baseY - Math.round(this._spriteW / 2),
+      duration: 400,
+      ease:     'Quad.easeIn',
+    });
+  }
+
   _startVictory() {
     // Slow vertical bob while arms are raised
     this._addTween({
@@ -178,13 +206,25 @@ export class WrestlerSprite extends Phaser.GameObjects.Container {
   }
 
   _startCelebrate() {
-    // Faster bounce
-    this._addTween({
+    // Arms raised (victory pose) + exuberant bounce: jump 8px, repeat twice fast,
+    // then settle into a slower victory bob
+    this.scene.tweens.add({
+      targets:  this,
       y:        this._baseY - 8,
-      duration: 300,
+      duration: 200,
       ease:     'Quad.easeOut',
       yoyo:     true,
-      repeat:   -1,
+      repeat:   2,
+      onComplete: () => {
+        if (this._state !== 'celebrate' || !this.active) return;
+        this._addTween({
+          y:        this._baseY - 4,
+          duration: 600,
+          ease:     'Sine.easeInOut',
+          yoyo:     true,
+          repeat:   -1,
+        });
+      },
     });
   }
 }

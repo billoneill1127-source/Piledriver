@@ -51,10 +51,31 @@ export function createMatchScene(p1Data, p2Data) {
       this.add.text(P2_X, MAT_BOTTOM - this.p2Sprite._spriteH - 8, p2Data.name,
         { ...txtStyle, color: '#ff7777' }).setOrigin(0.5, 1);
 
+      // ── Stamina cache (updated by 'stamina' event) ───────────────────────
+      this._lastStamina = { [p1Data.id]: Infinity, [p2Data.id]: Infinity };
+
       // ── MatchEvents listeners ─────────────────────────────────────────────
       // All callbacks are wrapped in try/catch so any Phaser error is logged
       // here and does NOT propagate up into React's event loop (which would
       // unmount the entire app and produce a white screen).
+
+      const unsubStamina = MatchEvents.on('stamina', (vals) => {
+        try {
+          this._lastStamina = vals;
+          // Safety net: if a wrestler's stamina drops into pin range while
+          // they're still in idle, force them visually grounded.
+          [
+            { id: p1Data.id, sprite: this.p1Sprite },
+            { id: p2Data.id, sprite: this.p2Sprite },
+          ].forEach(({ id, sprite }) => {
+            if ((vals[id] ?? Infinity) < 20 && sprite?.active && sprite._state === 'idle') {
+              sprite.setState('grounded');
+            }
+          });
+        } catch (err) {
+          console.error('[MatchScene] stamina handler threw:', err);
+        }
+      });
 
       const unsubDamage = MatchEvents.on('damage', ({ wrestlerId }) => {
         try {
@@ -67,19 +88,29 @@ export function createMatchScene(p1Data, p2Data) {
 
       const unsubTurnResult = MatchEvents.on('turnResult', (res) => {
         try {
-          if (res.result !== 'success') return;
-          const atkSprite = res.attackerId === p1Data.id ? this.p1Sprite : this.p2Sprite;
-          if (!atkSprite?.active) return;
-          const dir = res.attackerId === p1Data.id ? 1 : -1;
-          const startX = atkSprite.x;
-          // Kill any leftover position tweens before starting a new lunge
-          this.tweens.killTweensOf(atkSprite);
-          this.tweens.add({
-            targets:  atkSprite,
-            x:        startX + dir * 15,
-            duration: 120,
-            ease:     'Quad.easeOut',
-            yoyo:     true,
+          // Lunge tween for successful attacks
+          if (res.result === 'success') {
+            const atkSprite = res.attackerId === p1Data.id ? this.p1Sprite : this.p2Sprite;
+            if (atkSprite?.active) {
+              const dir    = res.attackerId === p1Data.id ? 1 : -1;
+              const startX = atkSprite.x;
+              this.tweens.killTweensOf(atkSprite);
+              this.tweens.add({
+                targets:  atkSprite,
+                x:        startX + dir * 15,
+                duration: 120,
+                ease:     'Quad.easeOut',
+                yoyo:     true,
+              });
+            }
+          }
+
+          // Apply resting states after animations settle (hit flash = 200ms,
+          // lunge = 240ms — 300ms clears both).
+          // When MoveAnimator exists, migrate this to the 'animationComplete' event.
+          this.time.delayedCall(300, () => {
+            try { this._applyRestingStates(res); }
+            catch (err) { console.error('[MatchScene] _applyRestingStates threw:', err); }
           });
         } catch (err) {
           console.error('[MatchScene] turnResult handler threw:', err);
@@ -101,10 +132,46 @@ export function createMatchScene(p1Data, p2Data) {
 
       // Clean up listeners when scene shuts down
       this.events.once('shutdown', () => {
+        unsubStamina();
         unsubDamage();
         unsubTurnResult();
         unsubMatchOver();
       });
+    }
+
+    // ── Resting state logic ─────────────────────────────────────────────────
+
+    _applyRestingStates(res) {
+      const defSprite  = res.defenderId  === p1Data.id ? this.p1Sprite : this.p2Sprite;
+      const atkSprite  = res.attackerId  === p1Data.id ? this.p1Sprite : this.p2Sprite;
+      const defStamina = this._lastStamina[res.defenderId] ?? Infinity;
+
+      // ── Defender resting state ──────────────────────────────────────────
+      if (res.result === 'success') {
+        if (defStamina <= 0 || res.damage >= 12) {
+          if (defSprite?.active) defSprite.setState('grounded');
+        } else if (res.damage > 0) {
+          if (defSprite?.active) defSprite.setState('stunned');
+        } else {
+          if (defSprite?.active) defSprite.setState('idle');
+        }
+      } else if (res.result === 'reversal') {
+        // Original defender reversed successfully — they're fresh
+        if (defSprite?.active) defSprite.setState('idle');
+      } else {
+        // escape or block
+        if (defSprite?.active) defSprite.setState('idle');
+      }
+
+      // ── Attacker resting state ──────────────────────────────────────────
+      if (res.result === 'success') {
+        if (atkSprite?.active) {
+          atkSprite.setState(res.damage >= 12 ? 'celebrate' : 'idle');
+        }
+      } else {
+        // escape, block, reversal — attacker lost control or took damage
+        if (atkSprite?.active) atkSprite.setState('stunned');
+      }
     }
 
     // ── Visual helpers ──────────────────────────────────────────────────────
