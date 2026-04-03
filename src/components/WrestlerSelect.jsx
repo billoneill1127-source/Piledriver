@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import wrestlersData from '../data/wrestlers.json';
+import { drawWrestler, computeSize } from '../sprites/drawWrestler.js';
 
 // ── Stat definitions ────────────────────────────────────────────────────────
 
@@ -18,6 +19,37 @@ function fmtHeight(inches) {
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
+
+const CANVAS_W = 60;
+const CANVAS_H = 80;
+
+function WrestlerCanvas({ wrestler }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    const natural = computeSize(wrestler);
+    const scale   = Math.min(CANVAS_W / natural.w, CANVAS_H / natural.h);
+    const sw      = Math.round(natural.w * scale);
+    const sh      = Math.round(natural.h * scale);
+    ctx.save();
+    ctx.translate(Math.round((CANVAS_W - sw) / 2), CANVAS_H - sh);
+    drawWrestler(ctx, wrestler, { width: sw, height: sh });
+    ctx.restore();
+  }, [wrestler.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={CANVAS_W}
+      height={CANVAS_H}
+      style={{ imageRendering: 'pixelated', display: 'block', flexShrink: 0 }}
+    />
+  );
+}
 
 function StatBar({ value, color }) {
   return (
@@ -50,37 +82,46 @@ function WrestlerCard({ wrestler, selected, disabled, accentColor, onSelect }) {
         opacity: disabled ? 0.35 : 1,
         userSelect: 'none',
         transition: 'border-color 0.1s, background 0.1s',
+        display: 'flex',
+        gap: 10,
+        alignItems: 'flex-start',
       }}
     >
-      {/* Name */}
-      <div style={{
-        color: selected ? accentColor : '#e0d8a0',
-        fontSize: 12,
-        fontWeight: 'bold',
-        letterSpacing: 1,
-        marginBottom: 3,
-      }}>
-        {name}
-      </div>
+      {/* Sprite preview */}
+      <WrestlerCanvas wrestler={wrestler} />
 
-      {/* Physical summary */}
-      <div style={{ color: '#70708a', fontSize: 9, marginBottom: 9, letterSpacing: 0.5 }}>
-        {physical.build} · {fmtHeight(physical.height_in)} · {physical.weight_lb} lbs
-      </div>
+      {/* Name + stats */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Name */}
+        <div style={{
+          color: selected ? accentColor : '#e0d8a0',
+          fontSize: 12,
+          fontWeight: 'bold',
+          letterSpacing: 1,
+          marginBottom: 3,
+        }}>
+          {name}
+        </div>
 
-      {/* Stat bars */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {STATS.map(({ key, label, color }) => (
-          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ color: '#60607a', fontSize: 8, width: 20, textAlign: 'right', flexShrink: 0, letterSpacing: 0.5 }}>
-              {label}
-            </span>
-            <StatBar value={attrs[key]} color={color} />
-            <span style={{ color: '#80809a', fontSize: 8, width: 18, textAlign: 'right', flexShrink: 0 }}>
-              {attrs[key]}
-            </span>
-          </div>
-        ))}
+        {/* Physical summary */}
+        <div style={{ color: '#70708a', fontSize: 9, marginBottom: 9, letterSpacing: 0.5 }}>
+          {physical.build} · {fmtHeight(physical.height_in)} · {physical.weight_lb} lbs
+        </div>
+
+        {/* Stat bars */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {STATS.map(({ key, label, color }) => (
+            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: '#60607a', fontSize: 8, width: 20, textAlign: 'right', flexShrink: 0, letterSpacing: 0.5 }}>
+                {label}
+              </span>
+              <StatBar value={attrs[key]} color={color} />
+              <span style={{ color: '#80809a', fontSize: 8, width: 18, textAlign: 'right', flexShrink: 0 }}>
+                {attrs[key]}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

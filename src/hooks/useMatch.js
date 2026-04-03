@@ -120,6 +120,8 @@ export function useMatch({ p1, p2, p2IsCPU }) {
       ...res,
       offenseMoveId:   offId,
       defenseMoveId:   defId,
+      attackerId:      preOffenseId,
+      defenderId:      preDefenseId,
       attackerName:    preAttackerName,
       defenderName:    preDefenderName,
       counterMoveName: counterMove?.name ?? 'Counter Move',

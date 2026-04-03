@@ -1,0 +1,185 @@
+/**
+ * WrestlerSprite.js
+ *
+ * Phaser.GameObjects.Container subclass that renders a 16-bit style wrestler
+ * sprite using Phaser Graphics objects. Origin is at the wrestler's feet
+ * (bottom-center), matching the mat-contact point used in MatchScene.
+ *
+ * Usage:
+ *   const sprite = new WrestlerSprite(scene, x, matY, wrestlerData, 'right');
+ *   scene.add.existing(sprite);
+ *   sprite.setState('hit');
+ */
+
+import Phaser from 'phaser';
+import { drawWrestler, computeSize } from './drawWrestler.js';
+
+export class WrestlerSprite extends Phaser.GameObjects.Container {
+  /**
+   * @param {Phaser.Scene} scene
+   * @param {number} x         — horizontal center
+   * @param {number} y         — mat contact point (feet level)
+   * @param {object} wrestler  — full wrestler data object from wrestlers.json
+   * @param {'left'|'right'} facing
+   */
+  constructor(scene, x, y, wrestler, facing = 'right') {
+    super(scene, x, y);
+
+    this._wrestler = wrestler;
+    this._facing   = facing;
+    this._state    = 'idle';
+    this._baseY    = y;
+    this._tweens   = [];
+
+    const { w, h } = computeSize(wrestler);
+    this._spriteW = w;
+    this._spriteH = h;
+
+    // Main graphics layer — offset so container origin = bottom-center
+    this._gfx = scene.add.graphics();
+    this._gfx.setPosition(-Math.round(w / 2), -h);
+    this.add(this._gfx);
+
+    // Hit-flash overlay (white, normally invisible)
+    this._flashGfx = scene.add.graphics();
+    this._flashGfx.setPosition(-Math.round(w / 2), -h);
+    this._flashGfx.setAlpha(0);
+    this.add(this._flashGfx);
+
+    // Mirror for left-facing wrestlers
+    if (facing === 'left') this.setScale(-1, 1);
+
+    this._draw('idle');
+    this._startIdle();
+  }
+
+  // ── Public API ─────────────────────────────────────────────────────────────
+
+  /** Transition to a new animation state. */
+  setState(state) {
+    if (this._state === state) return;
+    this._state = state;
+    this._clearTweens();
+    this._resetTransform();
+
+    this._draw(state === 'victory' ? 'victory' : 'idle');
+
+    switch (state) {
+      case 'idle':      this._startIdle();      break;
+      case 'hit':       this._startHit();       break;
+      case 'down':      this._startDown();      break;
+      case 'victory':   this._startVictory();   break;
+      case 'celebrate': this._startCelebrate(); break;
+      default:          this._startIdle();
+    }
+    return this; // chainable
+  }
+
+  // ── Drawing ────────────────────────────────────────────────────────────────
+
+  _draw(pose) {
+    const gfx = this._gfx;
+    gfx.clear();
+    drawWrestler(gfx, this._wrestler, {
+      width:   this._spriteW,
+      height:  this._spriteH,
+      victory: pose === 'victory',
+    });
+  }
+
+  _drawFlash() {
+    const gfx = this._flashGfx;
+    gfx.clear();
+    gfx.fillStyle(0xffffff, 1);
+    drawWrestler(gfx, this._wrestler, {
+      width:  this._spriteW,
+      height: this._spriteH,
+    });
+  }
+
+  // ── Transform helpers ──────────────────────────────────────────────────────
+
+  _resetTransform() {
+    this.y      = this._baseY;
+    this.angle  = 0;
+    this._flashGfx.setAlpha(0);
+    this._flashGfx.clear();
+  }
+
+  _clearTweens() {
+    this._tweens.forEach(t => { if (t?.isPlaying?.()) t.stop(); });
+    this._tweens = [];
+  }
+
+  _addTween(config) {
+    const t = this.scene.tweens.add({ targets: this, ...config });
+    this._tweens.push(t);
+    return t;
+  }
+
+  // ── Animation states ───────────────────────────────────────────────────────
+
+  _startIdle() {
+    // Gentle vertical bob ±3 px, 800 ms
+    this._addTween({
+      y:        this._baseY - 3,
+      duration: 800,
+      ease:     'Sine.easeInOut',
+      yoyo:     true,
+      repeat:   -1,
+    });
+  }
+
+  _startHit() {
+    this._drawFlash();
+    this._flashGfx.setAlpha(1);
+    // Fade out the flash overlay, then return to idle
+    this._addTween({
+      targets:    this._flashGfx,
+      alpha:      0,
+      duration:   200,
+      ease:       'Linear',
+      onComplete: () => {
+        this._flashGfx.clear();
+        if (this._state === 'hit') {
+          this._state = 'idle';
+          this._startIdle();
+        }
+      },
+    });
+  }
+
+  _startDown() {
+    // Tip over to 90° — direction depends on facing so the sprite falls away
+    const targetAngle = this._facing === 'right' ? 90 : -90;
+    // Move origin so feet go down while body tips horizontally
+    this._addTween({
+      angle:    targetAngle,
+      y:        this._baseY - Math.round(this._spriteW / 2),
+      duration: 400,
+      ease:     'Quad.easeIn',
+    });
+  }
+
+  _startVictory() {
+    // Slow vertical bob while arms are raised
+    this._addTween({
+      y:        this._baseY - 5,
+      duration: 600,
+      ease:     'Sine.easeInOut',
+      yoyo:     true,
+      repeat:   -1,
+    });
+  }
+
+  _startCelebrate() {
+    // Faster bounce
+    this._addTween({
+      y:        this._baseY - 8,
+      duration: 300,
+      ease:     'Quad.easeOut',
+      yoyo:     true,
+      repeat:   -1,
+    });
+  }
+}
