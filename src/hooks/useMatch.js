@@ -25,11 +25,11 @@ import { MatchEvents }     from '../engine/MatchEvents.js';
 // ── Result description ─────────────────────────────────────────────────────
 
 function describeResult(r, loader) {
-  if (r.pinResult === true)       return `${r.attackerName} wins by PINFALL!`;
+  if (r.pinResult === true)        return `${r.attackerName} pins ${r.defenderName}! 1...2...3!`;
   if (r.submissionResult === true) return `${r.attackerName} wins by SUBMISSION!`;
 
   const parts = [];
-  if (r.pinOffered && r.pinResult === false) parts.push('Kicked out!');
+  if (r.pinOffered && r.pinResult === false) parts.push(`${r.defenderName} kicks out!`);
 
   const moveName = loader.getMove(r.offenseMoveId)?.name ?? 'Move';
   switch (r.result) {
@@ -204,6 +204,20 @@ export function useMatch({ p1, p2, p2IsCPU }) {
 
     return () => clearTimeout(timer);
   }, [phase, offenseId, p2IsCPU, matchOver]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── CPU auto-pin ─────────────────────────────────────────────────────────
+  // When phase reaches 'pin_prompt' and the CPU is the current attacker,
+  // skip the human prompt entirely and immediately execute the pin attempt.
+  useEffect(() => {
+    if (phase !== 'pin_prompt' || matchOver || !p2IsCPU || offenseId !== p2.id) return;
+    const timer = setTimeout(() => {
+      const cpuWrestler = loader.getWrestler(p2.id);
+      const offId = tm.cpuSelectOffense(cpuWrestler);
+      const defId = tm.cpuSelectDefense(loader.getWrestler(p1.id));
+      executeWithMoves(offId, defId, false); // engine handles pin internally
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [phase, p2IsCPU, offenseId, matchOver]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-resolve when both moves chosen ──────────────────────────────────
   useEffect(() => {

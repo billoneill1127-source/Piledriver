@@ -166,7 +166,7 @@ function BottomHud({ offenseId, p1, p2, turnCount, log }) {
 
 // ── Pin prompt ────────────────────────────────────────────────────────────
 
-function PinPrompt({ defenderName, onDecision }) {
+function PinPrompt({ onDecision }) {
   const btnBase = {
     padding: '10px 28px',
     fontFamily: FONT,
@@ -438,6 +438,7 @@ function MatchOverOverlay({ winner, p1, p2, onReturn }) {
 export default function MatchUI({ p1, p2, p2IsCPU, match, onReturn }) {
   const {
     phase, stamina, offenseId, turnCount, winner, lastResult, log,
+    p1IsAttacker,
     availableOffenseMoves, availableDefenseMoves,
     handlePinDecision,
   } = match;
@@ -460,8 +461,11 @@ export default function MatchUI({ p1, p2, p2IsCPU, match, onReturn }) {
       />
 
       {/* Phase-dependent center content */}
-      {phase === 'pin_prompt' && (
-        <PinPrompt defenderName={defenderName} onDecision={handlePinDecision} />
+      {/* Pin prompt only shown to the OFFENSIVE (human) player.
+          When CPU is the attacker the auto-pin useEffect handles it
+          without interrupting the human. */}
+      {phase === 'pin_prompt' && (p1IsAttacker || !p2IsCPU) && (
+        <PinPrompt onDecision={handlePinDecision} />
       )}
 
       {phase === 'selecting' && (
