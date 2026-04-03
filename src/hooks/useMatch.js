@@ -109,7 +109,14 @@ export function useMatch({ p1, p2, p2IsCPU }) {
     setPendingDefense(null);
 
     if (skipPin) tm.lastDefenderId = null;
-    const res = tm.executeTurn(offId, defId);
+    let res;
+    try {
+      res = tm.executeTurn(offId, defId);
+    } catch (err) {
+      console.error('[useMatch] executeTurn threw:', err);
+      executingRef.current = false;
+      return;
+    }
 
     // Build enriched result for display
     const offMove     = loader.getMove(offId);

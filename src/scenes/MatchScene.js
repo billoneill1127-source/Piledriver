@@ -54,13 +54,14 @@ export function createMatchScene(p1Data, p2Data) {
       // ── MatchEvents listeners ─────────────────────────────────────────────
       const unsubDamage = MatchEvents.on('damage', ({ wrestlerId }) => {
         const sprite = wrestlerId === p1Data.id ? this.p1Sprite : this.p2Sprite;
-        sprite.setState('hit');
+        if (sprite?.active) sprite.setState('hit');
       });
 
       const unsubTurnResult = MatchEvents.on('turnResult', (res) => {
         if (res.result !== 'success') return;
         // Attacker lunges 15 px toward opponent then springs back
         const atkSprite = res.attackerId === p1Data.id ? this.p1Sprite : this.p2Sprite;
+        if (!atkSprite?.active) return;
         const dir = res.attackerId === p1Data.id ? 1 : -1;
         const startX = atkSprite.x;
         this.tweens.add({
@@ -75,8 +76,8 @@ export function createMatchScene(p1Data, p2Data) {
       const unsubMatchOver = MatchEvents.on('matchOver', ({ winner }) => {
         const winnerSprite = winner === p1Data.id ? this.p1Sprite : this.p2Sprite;
         const loserSprite  = winner === p1Data.id ? this.p2Sprite : this.p1Sprite;
-        winnerSprite.setState('victory');
-        loserSprite.setState('down');
+        if (winnerSprite?.active) winnerSprite.setState('victory');
+        if (loserSprite?.active)  loserSprite.setState('down');
 
         const winnerName = winner === p1Data.id ? p1Data.name : p2Data.name;
         this._showWinnerBanner(winnerName);

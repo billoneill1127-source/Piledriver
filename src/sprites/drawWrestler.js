@@ -213,6 +213,17 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
     ctx.circle(headCX - Math.round(headR * 0.2), headCY - Math.round(headR * 0.2), Math.round(headR * 0.35));
   }
 
+  // ── Profile nose (facing indicator) ──────────────────────────────────────
+  // A small bump on the RIGHT side of the head marks this as right-facing.
+  // When the Container has scaleX=-1 (left-facing wrestler), this flip makes
+  // the nose appear on the LEFT — giving a clear directional read.
+  if (skinPal) {
+    const noseW = Math.max(2, Math.round(headR * 0.35));
+    const noseH = Math.max(2, Math.round(headR * 0.28));
+    ctx.fill(skinPal.shadow);
+    ctx.rect(headCX + Math.round(headR * 0.55), headCY - Math.round(headR * 0.1), noseW, noseH);
+  }
+
   // ── Hair ──────────────────────────────────────────────────────────────────
   const hairstyle = (appearance.hairstyle ?? '').toLowerCase();
   if (hairPal && hairstyle !== 'none') {

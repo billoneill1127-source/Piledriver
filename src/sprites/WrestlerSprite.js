@@ -89,12 +89,14 @@ export class WrestlerSprite extends Phaser.GameObjects.Container {
 
   _drawFlash() {
     const gfx = this._flashGfx;
+    if (!gfx?.active) return;
     gfx.clear();
-    gfx.fillStyle(0xffffff, 1);
-    drawWrestler(gfx, this._wrestler, {
-      width:  this._spriteW,
-      height: this._spriteH,
-    });
+    // Draw a solid white silhouette: fill every rect/circle in white by
+    // temporarily overriding fillStyle calls through a shim.
+    const origFillStyle = gfx.fillStyle.bind(gfx);
+    gfx.fillStyle = () => origFillStyle(0xffffff, 1);
+    drawWrestler(gfx, this._wrestler, { width: this._spriteW, height: this._spriteH });
+    gfx.fillStyle = origFillStyle;
   }
 
   // ── Transform helpers ──────────────────────────────────────────────────────
@@ -107,7 +109,10 @@ export class WrestlerSprite extends Phaser.GameObjects.Container {
   }
 
   _clearTweens() {
-    this._tweens.forEach(t => { if (t?.isPlaying?.()) t.stop(); });
+    // killTweensOf is the reliable API — avoids isPlaying() which doesn't
+    // exist in Phaser 3.90 and caused the tween accumulation crash.
+    this.scene.tweens.killTweensOf(this);
+    this.scene.tweens.killTweensOf(this._flashGfx);
     this._tweens = [];
   }
 
@@ -132,7 +137,7 @@ export class WrestlerSprite extends Phaser.GameObjects.Container {
 
   _startHit() {
     this._drawFlash();
-    this._flashGfx.setAlpha(1);
+    if (this._flashGfx?.active) this._flashGfx.setAlpha(1);
     // Fade out the flash overlay, then return to idle
     this._addTween({
       targets:    this._flashGfx,
@@ -140,7 +145,7 @@ export class WrestlerSprite extends Phaser.GameObjects.Container {
       duration:   200,
       ease:       'Linear',
       onComplete: () => {
-        this._flashGfx.clear();
+        if (this._flashGfx?.active) this._flashGfx.clear();
         if (this._state === 'hit') {
           this._state = 'idle';
           this._startIdle();
