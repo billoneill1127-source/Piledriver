@@ -306,9 +306,31 @@ function MovePanel({ label, moves, isOffense, selected, locked, accentColor, onS
   );
 }
 
+function CpuStatusPanel({ label, hasSelected }) {
+  return (
+    <div style={{
+      width: 186,
+      height: '100%',
+      background: PANEL,
+      borderLeft: '1px solid #1a1a3a',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+      fontFamily: FONT,
+    }}>
+      <div style={{ color: P2C, fontSize: 8, letterSpacing: 2 }}>{label}</div>
+      <div style={{ color: hasSelected ? '#44cc44' : '#505068', fontSize: 9, letterSpacing: 1 }}>
+        {hasSelected ? 'CPU SELECTED.' : 'CPU THINKING...'}
+      </div>
+    </div>
+  );
+}
+
 function MoveSelection({ p1, p2, p2IsCPU, match }) {
   const {
-    offenseId, availableOffenseMoves, availableDefenseMoves,
+    availableOffenseMoves, availableDefenseMoves,
     pendingOffense, pendingDefense,
     selectOffenseMove, selectDefenseMove, p1IsAttacker,
   } = match;
@@ -319,7 +341,7 @@ function MoveSelection({ p1, p2, p2IsCPU, match }) {
   const p1Selected = p1IsAttacker ? pendingOffense : pendingDefense;
   const p1OnSelect = p1IsAttacker ? selectOffenseMove : selectDefenseMove;
 
-  // P2 column
+  // P2 column (only used when P2 is human)
   const p2Moves    = p1IsAttacker ? availableDefenseMoves : availableOffenseMoves;
   const p2IsOff    = !p1IsAttacker;
   const p2Selected = p1IsAttacker ? pendingDefense : pendingOffense;
@@ -327,6 +349,9 @@ function MoveSelection({ p1, p2, p2IsCPU, match }) {
 
   const p1Label = `P1 — ${p1IsOff ? 'OFFENSE' : 'DEFENSE'}`;
   const p2Label = `${p2IsCPU ? 'CPU' : 'P2'} — ${p2IsOff ? 'OFFENSE' : 'DEFENSE'}`;
+
+  // Which pending slot belongs to CPU?
+  const cpuSelected = p1IsAttacker ? pendingDefense : pendingOffense;
 
   return (
     <div style={{ position: 'absolute', top: 52, left: 0, width: '100%', height: 500, display: 'flex', justifyContent: 'space-between' }}>
@@ -344,16 +369,21 @@ function MoveSelection({ p1, p2, p2IsCPU, match }) {
       {/* Transparent center — ring shows through */}
       <div style={{ flex: 1 }} />
 
-      {/* P2 panel (right) */}
-      <MovePanel
-        label={p2Label}
-        moves={p2Moves}
-        isOffense={p2IsOff}
-        selected={p2Selected}
-        locked={p2IsCPU ? true : p2Selected !== null}
-        accentColor={P2C}
-        onSelect={p2IsCPU ? () => {} : p2OnSelect}
-      />
+      {/* P2 panel (right) — hidden move list when CPU */}
+      {p2IsCPU
+        ? <CpuStatusPanel label={p2Label} hasSelected={cpuSelected !== null} />
+        : (
+          <MovePanel
+            label={p2Label}
+            moves={p2Moves}
+            isOffense={p2IsOff}
+            selected={p2Selected}
+            locked={p2Selected !== null}
+            accentColor={P2C}
+            onSelect={p2OnSelect}
+          />
+        )
+      }
     </div>
   );
 }
@@ -384,20 +414,22 @@ function MatchOverOverlay({ winner, p1, p2, onReturn }) {
       <button
         onClick={onReturn}
         style={{
-          padding: '10px 32px',
+          padding: '12px 40px',
           fontFamily: FONT,
-          fontSize: 11,
+          fontSize: 12,
           letterSpacing: 3,
-          background: 'transparent',
-          color: '#7070a0',
-          border: '1px solid #3a3a5a',
+          fontWeight: 'bold',
+          background: '#0a0a1a',
+          color: GOLDC,
+          border: `2px solid ${GOLDC}`,
           cursor: 'pointer',
           pointerEvents: 'auto',
+          transition: 'background 0.15s',
         }}
-        onMouseEnter={e => { e.currentTarget.style.color = '#b0b0d0'; e.currentTarget.style.borderColor = '#606080'; }}
-        onMouseLeave={e => { e.currentTarget.style.color = '#7070a0'; e.currentTarget.style.borderColor = '#3a3a5a'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#1a1400'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#0a0a1a'; }}
       >
-        ◀ RETURN TO SELECT
+        ◀ REMATCH / SELECT
       </button>
     </div>
   );

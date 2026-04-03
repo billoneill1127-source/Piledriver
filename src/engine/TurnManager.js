@@ -7,7 +7,7 @@
  *
  * Turn sequence:
  *   1. checkPinOpportunity() — if same defender is still on defense AND
- *      their stamina < 20, a pin is attempted before move selection.
+ *      their stamina <= 0, a pin is attempted before move selection.
  *   2. executeTurn(offenseMoveId, defenseMoveId) — resolve the exchange and
  *      return a full TurnResult.
  *
@@ -56,6 +56,9 @@ export class TurnManager {
    *
    * Conditions: the same wrestler has been on defense for at least two
    * consecutive turns AND their current stamina is below 20.
+   * The pin prompt re-triggers every turn the same defender remains below
+   * the threshold — giving the attacker a chance each turn they keep
+   * pressure on. Only a successful pin or submission ends the match.
    *
    * @returns {boolean}
    */
@@ -157,24 +160,7 @@ export class TurnManager {
       }
     }
 
-    // ── Step 5: Check stamina KO ────────────────────────────────────────────
-    const koWinner = this.state.isMatchOver();
-    if (koWinner) {
-      this.lastDefenderId = null;
-      return {
-        result,
-        damage,
-        newOffensivePlayer: this.state.offensivePlayerId,
-        matchOver: true,
-        winner: koWinner,
-        pinOffered,
-        pinResult: pinOffered ? false : null,
-        submissionResult,
-        staminaRecovered: false,
-      };
-    }
-
-    // ── Step 6: Stamina recovery and offense handoff ────────────────────────
+    // ── Step 5: Stamina recovery and offense handoff ───────────────────────
     let staminaRecovered = false;
 
     if (result === 'success') {

@@ -151,8 +151,9 @@ export function useMatch({ p1, p2, p2IsCPU }) {
     // Emit Phaser events
     MatchEvents.emit('stamina', newStamina);
 
-    if (enriched.damage > 0) {
-      // Reversal: original attacker takes damage. Success: defender takes damage.
+    // Flash only on success or reversal where damage actually landed —
+    // blocks and escapes produce damage=0 so they never trigger the hit flash.
+    if (enriched.damage > 0 && (enriched.result === 'success' || enriched.result === 'reversal')) {
       const damagedId = enriched.result === 'reversal' ? preOffenseId : preDefenseId;
       MatchEvents.emit('damage', { wrestlerId: damagedId, amount: enriched.damage });
     }
