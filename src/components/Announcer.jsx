@@ -1,22 +1,35 @@
 /**
  * Announcer.jsx
  *
- * Two announcer SVG figures at the bottom corners with a commentary text box
- * between them. A new line fades in and the active speaker leans inward.
+ * Two announcer SVG figures centered at the bottom of the overlay with a
+ * commentary text box between them. A new line fades in and the active
+ * speaker leans inward; the idle speaker leans slightly away.
  * Speakers alternate each line.
  */
 
 import { useState, useEffect, useRef } from 'react';
 
+// lean: 'toward' | 'away' | 'neutral'
+const chipTransform = {
+  toward:  'translateX(14px) scale(1.08)',
+  away:    'translateX(-4px)',
+  neutral: 'translateX(0)',
+};
+const bobbyTransform = {
+  toward:  'scaleX(-1) translateX(14px) scale(1.08)',
+  away:    'scaleX(-1) translateX(-4px)',
+  neutral: 'scaleX(-1)',
+};
+
 // ── SVG Figures ──────────────────────────────────────────────────────────────
 
-function ChipChesswick({ active }) {
+function ChipChesswick({ lean }) {
   // Red suit, left side, faces right
   return (
     <svg width="52" height="90" viewBox="0 0 52 90" xmlns="http://www.w3.org/2000/svg"
       style={{
         display: 'block',
-        transform: active ? 'translateX(5px)' : 'translateX(0)',
+        transform: chipTransform[lean] ?? chipTransform.neutral,
         transition: 'transform 400ms ease',
       }}>
       {/* Head */}
@@ -47,13 +60,13 @@ function ChipChesswick({ active }) {
   );
 }
 
-function BobbyDonovan({ active }) {
+function BobbyDonovan({ lean }) {
   // Purple suit, right side, faces left (mirror via scaleX)
   return (
     <svg width="52" height="90" viewBox="0 0 52 90" xmlns="http://www.w3.org/2000/svg"
       style={{
         display: 'block',
-        transform: active ? 'scaleX(-1) translateX(5px)' : 'scaleX(-1) translateX(0)',
+        transform: bobbyTransform[lean] ?? bobbyTransform.neutral,
         transition: 'transform 400ms ease',
       }}>
       {/* Head */}
@@ -108,63 +121,67 @@ export function Announcer({ commentaryLine }) {
     return () => clearTimeout(swap);
   }, [commentaryLine]);
 
+  const chipLean  = visible ? (speaker === 0 ? 'toward' : 'away') : 'neutral';
+  const bobbyLean = visible ? (speaker === 1 ? 'toward' : 'away') : 'neutral';
+
   return (
     <div style={{
       position:   'absolute',
-      bottom:     48,
-      left:       0,
-      width:      '100%',
+      bottom:     20,
+      left:       '50%',
+      transform:  'translateX(-50%)',
+      width:      340,
       display:    'flex',
       alignItems: 'flex-end',
-      justifyContent: 'space-between',
       pointerEvents: 'none',
       userSelect: 'none',
     }}>
       {/* Chip Chesswick — left */}
-      <div style={{ marginLeft: 8 }}>
-        <ChipChesswick active={speaker === 0 && visible} />
+      <div style={{ flexShrink: 0 }}>
+        <ChipChesswick lean={chipLean} />
         <div style={{
-          textAlign: 'center',
-          fontSize:  '9px',
-          color:     '#cc4444',
+          textAlign:  'center',
+          fontSize:   '9px',
+          color:      '#cc4444',
           fontFamily: 'monospace',
           marginTop:  2,
         }}>CHIP</div>
       </div>
 
-      {/* Commentary box */}
+      {/* Commentary box — 220px between the two figures */}
       <div style={{
-        flex:            1,
-        margin:          '0 12px 8px',
-        padding:         '8px 12px',
-        background:      'rgba(0,0,0,0.78)',
-        border:          '1px solid rgba(255,255,255,0.15)',
-        borderRadius:    6,
-        minHeight:       40,
-        display:         'flex',
-        alignItems:      'center',
-        justifyContent:  'center',
-        opacity:         visible ? 1 : 0,
-        transition:      'opacity 300ms ease',
+        width:          220,
+        flexShrink:     0,
+        margin:         '0 4px 8px',
+        padding:        '8px 10px',
+        background:     'rgba(0,0,0,0.78)',
+        border:         '1px solid rgba(255,255,255,0.15)',
+        borderRadius:   6,
+        minHeight:      40,
+        display:        'flex',
+        alignItems:     'center',
+        justifyContent: 'center',
+        opacity:        visible ? 1 : 0,
+        transition:     'opacity 300ms ease',
       }}>
         <span style={{
-          fontFamily:  'monospace',
-          fontSize:    '12px',
-          color:       speaker === 0 ? '#ff9999' : '#cc99ff',
-          textAlign:   'center',
-          lineHeight:  1.4,
+          fontFamily: 'monospace',
+          fontSize:   '12px',
+          color:      speaker === 0 ? '#ff9999' : '#cc99ff',
+          textAlign:  'center',
+          lineHeight: 1.4,
         }}>
           {displayLine}
         </span>
       </div>
 
       {/* Bobby "The Brain" Donovan — right */}
-      <div style={{ marginRight: 8 }}>
-        <BobbyDonovan active={speaker === 1 && visible} />
+      <div style={{ flexShrink: 0 }}>
+        <BobbyDonovan lean={bobbyLean} />
         <div style={{
-          textAlign: 'center',
-          fontSize:  '9px',
-          color:     '#9966cc',
+          textAlign:  'center',
+          fontSize:   '9px',
+          color:      '#9966cc',
           fontFamily: 'monospace',
           marginTop:  2,
         }}>BOBBY</div>
