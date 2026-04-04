@@ -176,12 +176,9 @@ export function useMatch({ p1, p2, p2IsCPU }) {
 
     MatchEvents.emit('turnResult', enriched);
 
-    if (res.matchOver && res.winner) {
-      MatchEvents.emit('matchOver', {
-        winner:     res.winner,
-        winnerName: loader.getWrestler(res.winner)?.name ?? 'Winner',
-      });
-    }
+    // NOTE: MatchEvents 'matchOver' is NOT emitted here. It is emitted inside
+    // finishMatchOver (below) so the Phaser WINS banner and the React overlay
+    // appear at exactly the same time — after all drama phases complete.
 
     // Result banner duration — varies by outcome
     const isSubEscape = offMove?.is_submission && !res.matchOver && res.result === 'escape';
@@ -189,16 +186,28 @@ export function useMatch({ p1, p2, p2IsCPU }) {
       : isSubEscape ? 1000
       : 1500;
 
-    // Advance phase after result banner
+    // Final transition: Phaser matchOver event + React phase change together,
+    // called only when ALL drama phases have completed.
+    const finishMatchOver = () => {
+      MatchEvents.emit('matchOver', {
+        winner:     res.winner,
+        winnerName: loader.getWrestler(res.winner)?.name ?? 'Winner',
+      });
+      setPhase('match_over');
+    };
+
+    // Advance phase after result banner — every match_over transition is
+    // strictly chained: no setPhase('match_over') outside this callback tree.
     setTimeout(() => {
       executingRef.current = false;
       if (res.matchOver) {
         if (isDoubleCheckSub) {
-          // Second drama beat: "can't get out of it!" for 2000ms then match over
+          // Phase 2: drama banner "can't get out of it!" for 2000ms, then match over
           setPhase('submission_drama');
-          setTimeout(() => setPhase('match_over'), 2000);
+          setTimeout(finishMatchOver, 2000);
         } else {
-          setPhase('match_over');
+          // Single-check sub (already waited 2000ms), pin, or other match-over
+          finishMatchOver();
         }
       } else {
         setPhase(tm.checkPinOpportunity() ? 'pin_prompt' : 'selecting');

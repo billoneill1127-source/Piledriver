@@ -11,7 +11,8 @@
  *   Both wrestlers move to ring center (x=400) over 250ms, hold 150ms.
  *
  * ATTEMPT per category:
- *   strike/aerial — attacker lunges forward 30px (yoyo)
+ *   strike/aerial — attacker closes to 60px of defender's home (200ms),
+ *                   then throws a 40px lunge (100ms, yoyo)
  *   slam          — attacker wind-up: step back 20px then drive forward 15px
  *   grapple       — both wrestlers nudge toward each other 10px (yoyo)
  *
@@ -104,21 +105,36 @@ export class MoveAnimator {
     switch (category) {
       case 'slam':    this._attemptSlam(atkSprite, dir, cb);               break;
       case 'grapple': this._attemptGrapple(atkSprite, defSprite, dir, cb); break;
-      default:        this._attemptStrike(atkSprite, dir, cb);             break;
+      default:        this._attemptStrike(atkSprite, defSprite, dir, cb);  break;
     }
   }
 
-  /** strike / aerial — step forward and back */
-  _attemptStrike(atkSprite, dir, cb) {
-    const startX = atkSprite.x;
+  /**
+   * strike / aerial — attacker closes to within 60px of the defender's home
+   * position (200ms), then throws a 40px lunge (100ms yoyo).
+   */
+  _attemptStrike(atkSprite, defSprite, dir, cb) {
+    const defHome  = defSprite === this._p1Sprite ? this._p1Home : this._p2Home;
+    const approachX = defHome.x - dir * 60; // stop 60px in front of defender
+
     this._scene.tweens.killTweensOf(atkSprite);
+    // Step 1: close the distance
     this._scene.tweens.add({
       targets:  atkSprite,
-      x:        startX + dir * 30,
-      duration: 150,
-      ease:     'Quad.easeOut',
-      yoyo:     true,
-      onComplete: cb,
+      x:        approachX,
+      duration: 200,
+      ease:     'Power1',
+      onComplete: () => {
+        // Step 2: throw the strike
+        this._scene.tweens.add({
+          targets:  atkSprite,
+          x:        approachX + dir * 40,
+          duration: 100,
+          ease:     'Quad.easeOut',
+          yoyo:     true,
+          onComplete: cb,
+        });
+      },
     });
   }
 
