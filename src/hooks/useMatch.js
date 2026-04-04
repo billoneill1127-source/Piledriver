@@ -122,7 +122,7 @@ export function useMatch({ p1, p2, p2IsCPU }) {
   const availableDefenseMoves = loader.getAvailableMoves(defender, 'Defense');
 
   // ── Core execution ───────────────────────────────────────────────────────
-  function executeWithMoves(offId, defId, skipPin = false) {
+  function executeWithMoves(offId, defId) {
     if (executingRef.current) return;
     executingRef.current = true;
 
@@ -135,7 +135,6 @@ export function useMatch({ p1, p2, p2IsCPU }) {
     setPendingOffense(null);
     setPendingDefense(null);
 
-    if (skipPin) tm.lastDefenderId = null;
     let res;
     try {
       res = tm.executeTurn(offId, defId);
@@ -177,11 +176,7 @@ export function useMatch({ p1, p2, p2IsCPU }) {
     const defNewStamina = newStamina[preDefenseId];
 
     let trigger = null;
-    if (enriched.pinResult === true) {
-      trigger = 'pin_success';
-    } else if (enriched.pinOffered && enriched.pinResult === false) {
-      trigger = 'pin_kickout';
-    } else if (enriched.submissionResult === true) {
+    if (enriched.submissionResult === true) {
       trigger = 'submission_success';
     } else if (offMove?.is_submission && enriched.result === 'escape') {
       trigger = 'submission_escape';
@@ -334,15 +329,10 @@ export function useMatch({ p1, p2, p2IsCPU }) {
 
   // ── CPU auto-pin ─────────────────────────────────────────────────────────
   // When phase reaches 'pin_prompt' and the CPU is the current attacker,
-  // skip the human prompt entirely and immediately execute the pin attempt.
+  // always go for the pin immediately.
   useEffect(() => {
     if (phase !== 'pin_prompt' || matchOver || !p2IsCPU || offenseId !== p2.id) return;
-    const timer = setTimeout(() => {
-      const cpuWrestler = loader.getWrestler(p2.id);
-      const offId = tm.cpuSelectOffense(cpuWrestler);
-      const defId = tm.cpuSelectDefense(loader.getWrestler(p1.id));
-      executeWithMoves(offId, defId, false); // engine handles pin internally
-    }, 400);
+    const timer = setTimeout(() => handlePinDecision(true), 400);
     return () => clearTimeout(timer);
   }, [phase, p2IsCPU, offenseId, matchOver]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -363,14 +353,62 @@ export function useMatch({ p1, p2, p2IsCPU }) {
 
   function handlePinDecision(accepted) {
     if (!accepted) {
-      tm.lastDefenderId = null; // skip pin for this turn
+      // Declined — go straight to move selection; same attacker stays on offense.
+      // lastDefenderId is intentionally NOT cleared so the pin can re-trigger
+      // at the start of the next turn if the same defender is still below 20.
       setPhase('selecting');
       return;
     }
-    // Go for the pin — auto-select fallback moves in case pin fails
-    const offId = tm.cpuSelectOffense(attacker);
-    const defId = tm.cpuSelectDefense(defender);
-    executeWithMoves(offId, defId, false); // engine handles pin internally
+
+    // ── Attempt the pin (no full turn executed) ───────────────────────────
+    if (executingRef.current) return;
+    executingRef.current = true;
+
+    const pinSucceeded  = tm.attemptPin();
+    const atkName       = { name: attacker.name };
+    const defName       = { name: defender.name };
+
+    // Synthetic result for the display banner
+    const pinResult = {
+      pinOffered:   true,
+      pinResult:    pinSucceeded,
+      matchOver:    pinSucceeded,
+      winner:       pinSucceeded ? offenseId : null,
+      attackerName: attacker.name,
+      defenderName: defender.name,
+      attackerId:   offenseId,
+      defenderId:   defenseId,
+      result:       null,
+      damage:       0,
+      description:  pinSucceeded
+        ? `${attacker.name} pins ${defender.name}! 1...2...3!`
+        : `${defender.name} kicks out!`,
+    };
+
+    setLastResult(pinResult);
+    setLog(prev => [...prev.slice(-4), pinResult.description]);
+    setPhase('result');
+
+    if (pinSucceeded) {
+      emitCommentary(commentary.getLine('pin_success', atkName, defName));
+      setWinner(offenseId);
+      setTimeout(() => {
+        executingRef.current = false;
+        const winnerObj = loader.getWrestler(offenseId);
+        const loserObj  = loader.getWrestler(defenseId);
+        emitCommentary(commentary.getLine('match_over', winnerObj, loserObj));
+        MatchEvents.emit('matchOver', { winner: offenseId, winnerName: attacker.name });
+        setPhase('match_over');
+      }, 1500);
+    } else {
+      emitCommentary(commentary.getLine('pin_kickout', atkName, defName));
+      setTimeout(() => {
+        executingRef.current = false;
+        // Kickout: same attacker still on offense, no turn consumed.
+        // lastDefenderId stays set so pin re-triggers next turn if still eligible.
+        setPhase('selecting');
+      }, 1500);
+    }
   }
 
   return {

@@ -71,14 +71,28 @@ export class TurnManager {
     );
   }
 
+  // ── Pin attempt (standalone, pre-turn) ───────────────────────────────────
+
+  /**
+   * Attempt a pin independently of turn execution.
+   * Does NOT increment turnCount, does NOT modify offense assignment, and
+   * does NOT touch lastDefenderId — those are the caller's responsibility.
+   *
+   * Called by useMatch.handlePinDecision when the offensive player chooses
+   * to go for the pin. The result (true = match over, false = kickout) is
+   * handled entirely in useMatch without running a move exchange.
+   *
+   * @returns {boolean} true if the pin succeeds
+   */
+  attemptPin() {
+    return this.state.checkPin(this.getDefender());
+  }
+
   // ── Main turn execution ───────────────────────────────────────────────────
 
   /**
-   * Execute a complete turn.
-   *
-   * If checkPinOpportunity() is true and the pin succeeds, the match ends
-   * immediately — no move resolution occurs.
-   * If the pin fails, move resolution continues normally.
+   * Execute a complete turn (move exchange only — pin checking is now the
+   * exclusive responsibility of useMatch.handlePinDecision via attemptPin).
    *
    * For reversals: the counter_move is executed automatically against the
    * original attacker; damage goes to them, and the defender becomes the
@@ -94,8 +108,6 @@ export class TurnManager {
    * @property {string}  newOffensivePlayer — id of who attacks next
    * @property {boolean} matchOver
    * @property {string|null} winner         — wrestler id, or null
-   * @property {boolean} pinOffered
-   * @property {boolean|null} pinResult     — true = pin succeeded
    * @property {boolean|null} submissionResult — true = submitted
    * @property {boolean} staminaRecovered   — true if +5 stamina was granted
    */
@@ -104,27 +116,7 @@ export class TurnManager {
     const defender = this.getDefender();
     this.turnCount++;
 
-    // ── Step 1: Pin opportunity ─────────────────────────────────────────────
-    const pinOffered = this.checkPinOpportunity();
-    if (pinOffered) {
-      const pinSucceeded = this.state.checkPin(defender);
-      if (pinSucceeded) {
-        return {
-          result: null,
-          damage: 0,
-          newOffensivePlayer: attacker.id,
-          matchOver: true,
-          winner: attacker.id,
-          pinOffered: true,
-          pinResult: true,
-          submissionResult: null,
-          staminaRecovered: false,
-        };
-      }
-      // Pin failed — fall through to move resolution
-    }
-
-    // ── Step 2: Resolve move exchange ──────────────────────────────────────
+    // ── Step 1: Resolve move exchange ──────────────────────────────────────
     const offenseMove = this.data.getMove(offenseMoveId);
     const { result, reversalMoveId } = this.resolver.resolveTurn(
       offenseMoveId, defenseMoveId, attacker, defender,
@@ -152,8 +144,6 @@ export class TurnManager {
           newOffensivePlayer: attacker.id,
           matchOver: true,
           winner: attacker.id,
-          pinOffered,
-          pinResult: pinOffered ? false : null,
           submissionResult: true,
           staminaRecovered: false,
         };
@@ -180,8 +170,6 @@ export class TurnManager {
       newOffensivePlayer: this.state.offensivePlayerId,
       matchOver: false,
       winner: null,
-      pinOffered,
-      pinResult: pinOffered ? false : null,
       submissionResult,
       staminaRecovered,
     };
