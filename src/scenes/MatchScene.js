@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import { MatchEvents }   from '../engine/MatchEvents.js';
-import { WrestlerSprite } from '../sprites/WrestlerSprite.js';
-import { MoveAnimator }  from '../sprites/MoveAnimator.js';
+import { MatchEvents }     from '../engine/MatchEvents.js';
+import { WrestlerSprite }  from '../sprites/WrestlerSprite.js';
+import { MoveAnimator }    from '../sprites/MoveAnimator.js';
+import { PositionManager } from '../sprites/PositionManager.js';
 
 /**
  * Factory that closes over wrestler data so the scene doesn't rely on
@@ -45,7 +46,11 @@ export function createMatchScene(p1Data, p2Data) {
       this.add.existing(this.p1Sprite);
       this.add.existing(this.p2Sprite);
 
-      this._animator = new MoveAnimator(this, this.p1Sprite, this.p2Sprite, p1Data, p2Data);
+      this._posMgr  = new PositionManager(p1Data.id, p2Data.id);
+      this._posMgr.resetToCorners(); // ensure clean start
+      this._animator = new MoveAnimator(
+        this, this.p1Sprite, this.p2Sprite, p1Data, p2Data, this._posMgr,
+      );
 
       // ── Name labels ──────────────────────────────────────────────────────
       const txtStyle = { fontFamily: 'monospace', fontSize: '10px' };
@@ -102,6 +107,15 @@ export function createMatchScene(p1Data, p2Data) {
 
       const unsubMatchOver = MatchEvents.on('matchOver', ({ winner }) => {
         try {
+          // Snap wrestlers back to corners for the end-state presentation
+          this._posMgr.resetToCorners();
+          const p1Pos = this._posMgr.getPos(p1Data.id);
+          const p2Pos = this._posMgr.getPos(p2Data.id);
+          this.tweens.killTweensOf(this.p1Sprite);
+          this.tweens.killTweensOf(this.p2Sprite);
+          this.p1Sprite.x = p1Pos.x;
+          this.p2Sprite.x = p2Pos.x;
+
           const winnerSprite = winner === p1Data.id ? this.p1Sprite : this.p2Sprite;
           const loserSprite  = winner === p1Data.id ? this.p2Sprite : this.p1Sprite;
           if (winnerSprite?.active) winnerSprite.setState('victory');
