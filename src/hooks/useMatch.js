@@ -24,6 +24,7 @@ import { MatchState }      from '../engine/MatchState.js';
 import { OutcomeResolver } from '../engine/OutcomeResolver.js';
 import { TurnManager }     from '../engine/TurnManager.js';
 import { MatchEvents }     from '../engine/MatchEvents.js';
+import { Commentary }      from '../engine/Commentary.js';
 
 // ── Result description ─────────────────────────────────────────────────────
 
@@ -67,13 +68,14 @@ export function useMatch({ p1, p2, p2IsCPU }) {
   const engRef = useRef(null);
   if (!engRef.current) {
     MatchEvents.clear(); // clear any stale listeners from a previous match
-    const loader   = new DataLoader(wrestlersRaw, movesRaw, outcomesRaw);
-    const ms       = new MatchState(p1, p2);
-    const resolver = new OutcomeResolver(loader);
-    const tm       = new TurnManager(ms, resolver, loader);
-    engRef.current = { loader, ms, tm };
+    const loader     = new DataLoader(wrestlersRaw, movesRaw, outcomesRaw);
+    const ms         = new MatchState(p1, p2);
+    const resolver   = new OutcomeResolver(loader);
+    const tm         = new TurnManager(ms, resolver, loader);
+    const commentary = new Commentary();
+    engRef.current = { loader, ms, tm, commentary };
   }
-  const { loader, ms, tm } = engRef.current;
+  const { loader, ms, tm, commentary } = engRef.current;
 
   // ── React state ──────────────────────────────────────────────────────────
   const [phase, setPhase] = useState(() =>
@@ -90,10 +92,16 @@ export function useMatch({ p1, p2, p2IsCPU }) {
   const [log, setLog] = useState([]);
   const [pendingOffense, setPendingOffense] = useState(null);
   const [pendingDefense, setPendingDefense] = useState(null);
-  const [winNote, setWinNote] = useState(null);
+  const [winNote,        setWinNote]        = useState(null);
+  const [commentaryLine, setCommentaryLine] = useState('');
 
   // Guard: prevents double-execute in React StrictMode
   const executingRef = useRef(false);
+
+  // Tracks which wrestler IDs have already received a stamina_low line
+  const staminaLowFiredRef = useRef(new Set());
+  // Tracks consecutive successful moves by the same attacker
+  const momentumRef = useRef({ lastAttackerId: null, count: 0 });
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const matchOver  = winner !== null;
@@ -152,6 +160,60 @@ export function useMatch({ p1, p2, p2IsCPU }) {
 
     // Sync React state with engine
     const newStamina = { [p1.id]: ms.getStamina(p1.id), [p2.id]: ms.getStamina(p2.id) };
+
+    // ── Commentary trigger selection ───────────────────────────────────────
+    // Name shims for Commentary (only .name is required)
+    const atkName = { name: preAttackerName };
+    const defName = { name: preDefenderName };
+    const defNewStamina = newStamina[preDefenseId];
+
+    let trigger = null;
+    if (enriched.pinResult === true) {
+      trigger = 'pin_success';
+    } else if (enriched.pinOffered && enriched.pinResult === false) {
+      trigger = 'pin_kickout';
+    } else if (enriched.submissionResult === true) {
+      trigger = 'submission_success';
+    } else if (offMove?.is_submission && enriched.result === 'escape') {
+      trigger = 'submission_escape';
+    } else if (offMove?.is_submission && enriched.result === 'success' && !enriched.matchOver) {
+      trigger = 'submission_attempt';
+    } else if (
+      !enriched.matchOver &&
+      enriched.result === 'success' &&
+      defNewStamina < 20 &&
+      !staminaLowFiredRef.current.has(preDefenseId)
+    ) {
+      staminaLowFiredRef.current.add(preDefenseId);
+      trigger = 'stamina_low';
+    } else {
+      // Momentum tracking
+      if (enriched.result === 'success' || enriched.result === 'reversal') {
+        const winnerId = enriched.result === 'reversal' ? preDefenseId : preOffenseId;
+        if (momentumRef.current.lastAttackerId === winnerId) {
+          momentumRef.current.count += 1;
+        } else {
+          momentumRef.current.lastAttackerId = winnerId;
+          momentumRef.current.count = 1;
+        }
+        if (momentumRef.current.count >= 3) trigger = 'momentum';
+      } else {
+        momentumRef.current.count = 0;
+      }
+      // Normal move result
+      if (!trigger) {
+        switch (enriched.result) {
+          case 'success':  trigger = `move_success.${enriched.offMoveCategory}`; break;
+          case 'escape':   trigger = 'move_escape';   break;
+          case 'block':    trigger = 'move_block';    break;
+          case 'reversal': trigger = 'move_reversal'; break;
+          default: break;
+        }
+      }
+    }
+    if (trigger) setCommentaryLine(commentary.getLine(trigger, atkName, defName));
+    // ── End commentary ─────────────────────────────────────────────────────
+
     setStamina(newStamina);
     setTurnCount(tm.turnCount);
     setOffenseId(res.newOffensivePlayer);
@@ -189,9 +251,12 @@ export function useMatch({ p1, p2, p2IsCPU }) {
     // Final transition: Phaser matchOver event + React phase change together,
     // called only when ALL drama phases have completed.
     const finishMatchOver = () => {
+      const winnerObj = loader.getWrestler(res.winner);
+      const loserObj  = loader.getWrestler(res.winner === p1.id ? p2.id : p1.id);
+      setCommentaryLine(commentary.getLine('match_over', winnerObj, loserObj));
       MatchEvents.emit('matchOver', {
         winner:     res.winner,
-        winnerName: loader.getWrestler(res.winner)?.name ?? 'Winner',
+        winnerName: winnerObj?.name ?? 'Winner',
       });
       setPhase('match_over');
     };
@@ -203,6 +268,7 @@ export function useMatch({ p1, p2, p2IsCPU }) {
       if (res.matchOver) {
         if (isDoubleCheckSub) {
           // Phase 2: drama banner "can't get out of it!" for 2000ms, then match over
+          setCommentaryLine(commentary.getLine('submission_fading', atkName, defName));
           setPhase('submission_drama');
           setTimeout(finishMatchOver, 2000);
         } else {
@@ -223,6 +289,24 @@ export function useMatch({ p1, p2, p2IsCPU }) {
       }
     }, 5000);
   }
+
+  // ── Match-start commentary (fires once, 500 ms after mount) ─────────────
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCommentaryLine(
+        commentary.getLine('match_start', loader.getWrestler(p1.id), loader.getWrestler(p2.id)),
+      );
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Pin-prompt commentary ────────────────────────────────────────────────
+  useEffect(() => {
+    if (phase !== 'pin_prompt' || matchOver) return;
+    setCommentaryLine(
+      commentary.getLine('pin_attempt', loader.getWrestler(offenseId), loader.getWrestler(defenseId)),
+    );
+  }, [phase, matchOver]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── CPU auto-selection ───────────────────────────────────────────────────
   useEffect(() => {
@@ -305,5 +389,7 @@ export function useMatch({ p1, p2, p2IsCPU }) {
     selectOffenseMove,
     selectDefenseMove,
     handlePinDecision,
+    // Commentary
+    commentaryLine,
   };
 }

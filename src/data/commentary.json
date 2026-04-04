@@ -1,0 +1,133 @@
+{
+  "move_success": {
+    "strike": [
+      "WHAT A SHOT by {attacker}! {defender} is feeling that one!",
+      "{attacker} UNLOADS on {defender}! The crowd is on their feet!",
+      "OH! Right in the jaw! {defender} didn't see that coming!",
+      "{attacker} is stinging {defender} with those strikes!",
+      "The fists are FLYING! {attacker} takes control!",
+      "{defender} rocked! {attacker} is looking SHARP tonight!"
+    ],
+    "grapple": [
+      "{attacker} has {defender} locked in TIGHT! Pure technical wrestling!",
+      "Technical MASTERY from {attacker} — {defender} is in trouble!",
+      "{attacker} wrenches it in! {defender} needs to find a way out!",
+      "{defender} is in a BAD spot here, folks!",
+      "The hold is LOCKED IN! {attacker} is working that limb!",
+      "{attacker} knows what they're doing — this is textbook technique!"
+    ],
+    "slam": [
+      "WHAT A MOVE by {attacker}! {defender} is DOWN!",
+      "{attacker} PLANTS {defender} on the mat! OH MY!",
+      "The canvas SHOOK when {defender} hit the mat!",
+      "{attacker} with AUTHORITY! {defender} is in serious trouble!",
+      "TREMENDOUS power from {attacker}! {defender} got FOLDED!",
+      "OH! {defender} went DOWN HARD! {attacker} is fired up!"
+    ],
+    "aerial": [
+      "{attacker} LAUNCHES {defender} through the air!",
+      "HIGH RISK — HIGH REWARD for {attacker}! SPECTACULAR!",
+      "The crowd ERUPTS as {attacker} connects with the aerial attack!",
+      "{defender} went FLYING! {attacker} is putting on a SHOW!",
+      "What an ATHLETIC DISPLAY from {attacker}!"
+    ]
+  },
+  "move_escape": [
+    "{defender} ESCAPES! What incredible instincts!",
+    "Quick as a CAT — {defender} gets OUT of there!",
+    "{defender} slips away! {attacker} can't believe it!",
+    "That was CLOSE but {defender} survives!",
+    "Incredible ring awareness from {defender}!",
+    "{attacker} got nothing — {defender} is just TOO SMART!"
+  ],
+  "move_block": [
+    "{defender} BLOCKS it! Great defensive work!",
+    "{attacker}'s move goes NOWHERE — {defender} was ready!",
+    "Solid defense from {defender}! That went nowhere!",
+    "{defender} saw that coming a MILE AWAY!",
+    "BLOCKED! {attacker} is going to need a new game plan!"
+  ],
+  "move_reversal": [
+    "REVERSAL! The momentum SHIFTS in an instant!",
+    "{defender} TURNS IT AROUND! INCREDIBLE!",
+    "Did you SEE THAT?! Complete and total reversal!",
+    "{attacker} walked RIGHT INTO that one!",
+    "STUNNING counter from {defender}! This crowd is going nuts!",
+    "The TABLES HAVE TURNED! {defender} takes control!"
+  ],
+  "pin_attempt": [
+    "{attacker} goes for the COVER! Can they put this away?!",
+    "COVER! {attacker} is trying to END IT right here!",
+    "{attacker} hooks the leg — {defender} is DOWN!",
+    "The ref slides into position — is this IT?!",
+    "Can {attacker} put {defender} AWAY?! HERE'S THE COUNT!"
+  ],
+  "pin_kickout": [
+    "{defender} KICKS OUT! This match is NOT OVER!",
+    "NOT YET! {defender} SURVIVES! Unbelievable!",
+    "TWO — BUT NO! {defender} gets a shoulder UP!",
+    "{attacker} can't BELIEVE IT — {defender} LIVES!",
+    "WHAT HEART from {defender}! They refuse to stay down!",
+    "The crowd ERUPTS — {defender} kicks out at the last POSSIBLE moment!"
+  ],
+  "pin_success": [
+    "ONE! TWO! THREE! {attacker} PINS {defender}! IT'S OVER!",
+    "THREE COUNT! {attacker} WINS IT! That's all she wrote!",
+    "{attacker} PUTS {defender} AWAY! A decisive victory!",
+    "THE PIN! {attacker} gets the three count!"
+  ],
+  "submission_attempt": [
+    "{attacker} has the hold LOCKED IN! {defender} is in AGONY!",
+    "SUBMISSION ATTEMPT! Will {defender} be forced to tap?!",
+    "{defender} is SCREAMING — {attacker} is cranking that hold!",
+    "Can {attacker} make {defender} QUIT right here?!",
+    "{defender} needs to find a way out — and FAST!"
+  ],
+  "submission_escape": [
+    "{defender} ESCAPES! Unbelievable resilience!",
+    "FREEDOM! {defender} fights out of the hold!",
+    "{attacker} can't BELIEVE IT — {defender} escapes!",
+    "{defender} REFUSES to quit — and fights their way FREE!",
+    "The crowd goes INSANE as {defender} breaks the hold!"
+  ],
+  "submission_fading": [
+    "{defender} is FADING... {attacker} has it LOCKED IN TIGHT!",
+    "Is THIS IT?! {defender} is going out! {attacker} is SQUEEZING!",
+    "{defender}'s eyes are CLOSING — is this the end?!",
+    "I've never seen anything like this — {defender} is FADING FAST!"
+  ],
+  "submission_success": [
+    "{defender} CAN'T GET OUT! {attacker} MAKES THEM TAP!",
+    "IT'S OVER! {defender} has NO CHOICE but to submit!",
+    "{attacker} FORCES the tap! What a technical MASTERCLASS!",
+    "{defender} TAPS OUT! {attacker} wins by SUBMISSION!"
+  ],
+  "stamina_low": [
+    "{defender} is running on FUMES! {attacker} smells BLOOD!",
+    "OH NO — {defender} is in SERIOUS TROUBLE! The tank is EMPTY!",
+    "{attacker} has BROKEN {defender} down! This could be the beginning of the END!",
+    "{defender} is hanging on by a THREAD! How much does {attacker} have left?!",
+    "The ref is checking on {defender} — they can barely STAND!"
+  ],
+  "momentum": [
+    "{attacker} is ON FIRE tonight! Nobody can stop them!",
+    "{attacker} is on a ROLL! {defender} has NO ANSWERS!",
+    "MOMENTUM is everything and {attacker} has it ALL right now!",
+    "Is there ANY stopping {attacker}?! They are DOMINATING this match!",
+    "{defender} desperately needs to BREAK this momentum before it's too late!"
+  ],
+  "match_start": [
+    "WELCOME to the main event! {attacker} faces off against {defender} — LET'S GET IT STARTED!",
+    "Ladies and gentlemen — IT'S TIME! {attacker} versus {defender}!",
+    "THIS IS IT! The big one! {attacker} takes on {defender} TONIGHT!",
+    "The crowd is on their feet as {attacker} and {defender} stare each other DOWN!",
+    "Let's GET IT GOING! {attacker} vs {defender} — the bell has rung!"
+  ],
+  "match_over": [
+    "{attacker} WINS! What a PERFORMANCE tonight!",
+    "INCREDIBLE! {attacker} has done it! {defender} has been DEFEATED!",
+    "THE WINNER is {attacker}! What a MATCH, folks!",
+    "IT'S OVER! {attacker} defeats {defender} in a CLASSIC contest!",
+    "{attacker} REIGNS SUPREME! {defender} gave everything — but it wasn't enough!"
+  ]
+}

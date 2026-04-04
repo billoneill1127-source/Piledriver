@@ -6,6 +6,8 @@
  * everything goes through the `match` object returned by useMatch.
  */
 
+import { Announcer } from './Announcer.jsx';
+
 const FONT  = '"Courier New", Courier, monospace';
 const P1C   = '#00aaff';
 const P2C   = '#ff4444';
@@ -446,6 +448,7 @@ export default function MatchUI({ p1, p2, p2IsCPU, match, onReturn }) {
     p1IsAttacker,
     availableOffenseMoves, availableDefenseMoves,
     handlePinDecision,
+    commentaryLine,
   } = match;
 
   const defenderName = offenseId === p1.id ? p2.name : p1.name;
@@ -490,6 +493,11 @@ export default function MatchUI({ p1, p2, p2IsCPU, match, onReturn }) {
 
       {phase === 'match_over' && (
         <MatchOverOverlay winner={winner} p1={p1} p2={p2} onReturn={onReturn} winNote={winNote} />
+      )}
+
+      {/* Announcer — hidden during match_over */}
+      {phase !== 'match_over' && (
+        <Announcer commentaryLine={commentaryLine} />
       )}
 
       {/* Bottom HUD — hidden during match_over */}
