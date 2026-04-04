@@ -1,12 +1,23 @@
 /**
  * drawWrestler.js
  *
- * Pure drawing functions for 16-bit style wrestler sprites.
+ * Pure drawing functions for 8-bit style wrestler sprites.
  * Works with BOTH Phaser Graphics objects AND HTML5 Canvas 2D contexts
  * via a thin createCtx() adapter.
  *
  * Coordinate system: (0,0) is TOP-LEFT of the bounding box.
  * The caller is responsible for translating if needed.
+ *
+ * Draw order (painter's algorithm, back to front):
+ *   1. Long hair curtains (behind everything above the waist)
+ *   2. Legs
+ *   3. Footwear
+ *   4. Torso
+ *   5. Arms
+ *   6. Neck
+ *   7. Head (outline → face → hair cap)
+ *   8. Face details (eyes, nose, mouth)
+ *   9. Accessories (mask / headgear / weight belt / wristbands / kneepads)
  */
 
 import { ColorPalette } from './ColorPalette.js';
@@ -23,7 +34,7 @@ export function computeSize(wrestler) {
   const h = Math.round(80 + ((height_in - 67) / (78 - 67)) * 30);
   let w = 40 + ((weight_lb - 190) / (280 - 190)) * 25;
   const b = (build ?? '').toLowerCase();
-  if (b === 'jacked')    w *= 1.10;
+  if      (b === 'jacked')   w *= 1.10;
   else if (b === 'muscular') w *= 1.05;
   else if (b === 'slim')     w *= 0.90;
   return { w: Math.round(w), h: Math.round(h) };
@@ -32,13 +43,11 @@ export function computeSize(wrestler) {
 // ── Context adapter ───────────────────────────────────────────────────────────
 
 /**
- * Wraps a raw Phaser Graphics OR HTML5 Canvas 2D context into a
- * unified drawing interface: fill(hex), rect(x,y,w,h), circle(cx,cy,r).
+ * Wraps a Phaser Graphics OR HTML5 Canvas 2D context into a unified
+ * drawing interface: fill(hex), rect(x,y,w,h), circle(cx,cy,r).
  */
 function createCtx(rawCtx) {
-  // Phaser Graphics exposes fillStyle as a method; Canvas 2D as a string property.
   const isPhaser = typeof rawCtx.fillStyle === 'function';
-
   return {
     fill(hex) {
       if (isPhaser) rawCtx.fillStyle(parseInt(hex.slice(1), 16), 1);
@@ -49,6 +58,7 @@ function createCtx(rawCtx) {
       rawCtx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
     },
     circle(cx, cy, r) {
+      if (r <= 0) return;
       if (isPhaser) {
         rawCtx.fillCircle(Math.round(cx), Math.round(cy), Math.round(r));
       } else {
@@ -60,7 +70,7 @@ function createCtx(rawCtx) {
   };
 }
 
-// ── Palette helpers ───────────────────────────────────────────────────────────
+// ── Palette helper ────────────────────────────────────────────────────────────
 
 function pal(colorName) {
   return ColorPalette[colorName?.toLowerCase()] ?? null;
@@ -71,244 +81,441 @@ function pal(colorName) {
 /**
  * drawWrestler(rawCtx, wrestler, options)
  *
- * Draws the wrestler into rawCtx starting at (0,0).
+ * Draws the wrestler starting at (0,0) in rawCtx.
+ *
  * @param {object} options
- *   width  — override draw width  (default: computeSize().w)
- *   height — override draw height (default: computeSize().h)
- *   victory — boolean, if true draw arms-raised pose
+ *   width   — override draw width  (default: computeSize().w)
+ *   height  — override draw height (default: computeSize().h)
+ *   victory — boolean, draw both-arms-raised pose
+ *   smile   — boolean, draw upward mouth curve (victory / celebrate)
  */
 export function drawWrestler(rawCtx, wrestler, options = {}) {
   const { appearance, physical } = wrestler;
+  const id = wrestler.id ?? '';
+
+  // ── Wrestler archetype flags ──────────────────────────────────────────────
+  const isBogan   = id === 'bulk_bogan';
+  const isAguilia = id === 'el_aguilia_blanca';
+  const isTank    = id === 'tank_thompson';
+  const isMilkman = id === 'mike_milkman';
+
   const natural = computeSize(wrestler);
-  const W = options.width  ?? natural.w;
-  const H = options.height ?? natural.h;
+  const W       = options.width   ?? natural.w;
+  const H       = options.height  ?? natural.h;
   const victory = options.victory ?? false;
+  const smile   = options.smile   ?? false;
 
   const ctx = createCtx(rawCtx);
 
   // ── Proportional zones (top=0, bottom=H) ─────────────────────────────────
-  // Head: top 22%  → y [0, H*0.22]
-  // Torso: 22–57%  → [H*0.22, H*0.57]
-  // Legs: 57–93%   → [H*0.57, H*0.93]
-  // Feet: 93–100%  → [H*0.93, H]
+  const headH  = Math.round(H * 0.20);
+  const neckH  = Math.max(4, Math.round(H * 0.06));
+  const torsoH = Math.round(H * 0.32);
+  const legsH  = Math.round(H * 0.35);
+  const feetH  = Math.max(4, H - headH - neckH - torsoH - legsH);
 
-  const headTop    = 0;
-  const headH      = Math.round(H * 0.22);
-  const torsoTop   = headH;
-  const torsoH     = Math.round(H * 0.35);
-  const legsTop    = torsoTop + torsoH;
-  const legsH      = Math.round(H * 0.36);
-  const feetTop    = legsTop + legsH;
-  const feetH      = H - feetTop;
+  const torsoTop = headH + neckH;
+  const legsTop  = torsoTop + torsoH;
+  const feetTop  = legsTop + legsH;
 
-  const skinPal    = pal(physical.skin_color);
-  const costumePal = pal(appearance.costume_color);
+  // ── Color palettes ────────────────────────────────────────────────────────
+  const skinPal     = pal(physical.skin_color);
+  const costumePal  = pal(appearance.costume_color);
   const footwearPal = pal(appearance.footwear_color);
-  const hairPal    = pal(appearance.hair_color);
-  const accessPal  = pal(appearance.accessory_color);
+  const hairPal     = pal(appearance.hair_color);
+  const accessPal   = pal(appearance.accessory_color);
 
-  const isSinglet  = (appearance.costume_type ?? '').toLowerCase() === 'singlet';
+  const isSinglet = (appearance.costume_type ?? '').toLowerCase() === 'singlet';
+  const accessory = (appearance.accessory   ?? '').toLowerCase();
+  const hairstyle = (appearance.hairstyle   ?? '').toLowerCase();
 
-  // ── Legs ──────────────────────────────────────────────────────────────────
-  const legW = Math.max(3, Math.round(W * 0.38));
-  const gap  = Math.max(1, Math.round(W * 0.06));
-  const leftLegX  = Math.round((W / 2) - legW - gap / 2);
-  const rightLegX = Math.round((W / 2) + gap / 2);
+  // ── Derived measurements ──────────────────────────────────────────────────
+  const cx = Math.round(W / 2);
 
-  // Singlet covers legs; trunks exposes bare legs
+  // Torso width — Milkman is slightly narrower
+  const torsoXPct = isMilkman ? 0.08 : 0.05;
+  const torsoX    = Math.round(W * torsoXPct);
+  const torsoW    = W - torsoX * 2;
+
+  // Neck width — Bogan has a thick neck (50% torso width)
+  const neckWPct = isBogan ? 0.50 : 0.28;
+  const neckW    = Math.max(4, Math.round(torsoW * neckWPct));
+  const neckX    = cx - Math.round(neckW / 2);
+
+  // Legs — Tank has wider stance
+  const legGapBase = Math.max(1, Math.round(W * 0.06));
+  const legGap     = isTank ? Math.round(legGapBase * 1.5) : legGapBase;
+  const legW       = Math.max(3, Math.round(W * 0.38));
+  const leftLegX   = cx - legW - Math.round(legGap / 2);
+  const rightLegX  = cx + Math.round(legGap / 2);
+
+  // Arms — Bogan wider, Milkman thinner
+  const armWBase = Math.max(2, Math.round(W * 0.13));
+  const armW     = isBogan  ? Math.round(armWBase * 1.25)
+                 : isMilkman ? Math.round(armWBase * 0.75)
+                 : armWBase;
+  const armH = Math.round(torsoH * 0.82);
+  const armTop = torsoTop + Math.round(torsoH * 0.06);
+
+  // Head
+  const headR  = Math.round(headH / 2);
+  const headCX = cx;
+  const headCY = headR; // circle center at top of bounding box + radius
+
+  // ── 1. Long hair curtains (draw first — behind everything above waist) ────
+  if (hairPal && hairstyle === 'long') {
+    const curtainW = Math.max(3, Math.round(headR * 0.55));
+    const curtainH = Math.round((neckH + torsoH) * 0.72);
+    const curtainY = headCY + Math.round(headR * 0.35);
+    ctx.fill(hairPal.base);
+    ctx.rect(headCX - headR - curtainW + 4, curtainY, curtainW, curtainH);
+    ctx.rect(headCX + headR - 4,           curtainY, curtainW, curtainH);
+    ctx.fill(hairPal.highlight);
+    ctx.rect(headCX - headR - curtainW + 4, curtainY, 2, curtainH);
+  }
+
+  // ── 2. Legs ───────────────────────────────────────────────────────────────
   const legColor = isSinglet ? costumePal : skinPal;
   if (legColor) {
     ctx.fill(legColor.base);
     ctx.rect(leftLegX,  legsTop, legW, legsH);
     ctx.rect(rightLegX, legsTop, legW, legsH);
-    // Highlight strip on outer edge of each leg
+    // Highlight outer edge, shadow inner edge
     ctx.fill(legColor.highlight);
-    ctx.rect(leftLegX,  legsTop, 2, legsH);
-    ctx.rect(rightLegX + legW - 2, legsTop, 2, legsH);
-    // Shadow strip on inner edge
+    ctx.rect(leftLegX,              legsTop, 2, legsH);
+    ctx.rect(rightLegX + legW - 2,  legsTop, 2, legsH);
     ctx.fill(legColor.shadow);
-    ctx.rect(leftLegX + legW - 2, legsTop, 2, legsH);
-    ctx.rect(rightLegX, legsTop, 2, legsH);
+    ctx.rect(leftLegX  + legW - 2,  legsTop, 2, legsH);
+    ctx.rect(rightLegX,             legsTop, 2, legsH);
+    // Knee line at 60% of leg height
+    const kneeY = legsTop + Math.round(legsH * 0.60);
+    ctx.fill(legColor.shadow);
+    ctx.rect(leftLegX,  kneeY, legW, 1);
+    ctx.rect(rightLegX, kneeY, legW, 1);
   }
 
-  // ── Footwear ──────────────────────────────────────────────────────────────
+  // ── 3. Footwear ───────────────────────────────────────────────────────────
   if (footwearPal && feetH > 0) {
-    const shoeH = appearance.footwear_type === 'boots' ? feetH + Math.round(legsH * 0.18) : feetH;
-    const shoeTop = H - shoeH;
+    const isBoots   = (appearance.footwear_type ?? '').toLowerCase() === 'boots';
+    const bootExtra = isBoots ? Math.round(legsH * 0.18) : 0;
+    const shoeH     = feetH + bootExtra;
+    const shoeTop   = feetTop - bootExtra;
     ctx.fill(footwearPal.base);
     ctx.rect(leftLegX,  shoeTop, legW, shoeH);
     ctx.rect(rightLegX, shoeTop, legW, shoeH);
+    // Boot-top highlight line
     ctx.fill(footwearPal.highlight);
     ctx.rect(leftLegX,  shoeTop, legW, 2);
     ctx.rect(rightLegX, shoeTop, legW, 2);
   }
 
-  // ── Torso ─────────────────────────────────────────────────────────────────
-  const torsoX = Math.round(W * 0.05);
-  const torsoW = W - torsoX * 2;
+  // ── 4. Torso ──────────────────────────────────────────────────────────────
+  const hlW = Math.max(2, Math.round(torsoW * 0.10)); // highlight/shadow strip width
 
-  if (costumePal) {
-    ctx.fill(costumePal.base);
-    ctx.rect(torsoX, torsoTop, torsoW, torsoH);
-    // Highlight strip (left side)
-    ctx.fill(costumePal.highlight);
-    ctx.rect(torsoX, torsoTop, Math.max(2, Math.round(torsoW * 0.12)), torsoH);
-    // Shadow strip (right side)
-    ctx.fill(costumePal.shadow);
-    ctx.rect(torsoX + torsoW - Math.max(2, Math.round(torsoW * 0.12)), torsoTop, Math.max(2, Math.round(torsoW * 0.12)), torsoH);
-  }
+  if (isSinglet) {
+    // Full singlet: costume color top-to-bottom
+    if (costumePal) {
+      ctx.fill(costumePal.base);
+      ctx.rect(torsoX, torsoTop, torsoW, torsoH);
+      ctx.fill(costumePal.highlight);
+      ctx.rect(torsoX, torsoTop, hlW, torsoH);
+      ctx.fill(costumePal.shadow);
+      ctx.rect(torsoX + torsoW - hlW, torsoTop, hlW, torsoH);
+    }
 
-  // Singlet: no exposed trunks area; trunks: draw waistband at torso bottom
-  if (!isSinglet && costumePal) {
-    // Trunks sit in lower portion of torso area
-    const trunksH = Math.round(torsoH * 0.55);
-    const trunksTop = torsoTop + torsoH - trunksH;
-    ctx.fill(costumePal.base);
-    ctx.rect(torsoX, trunksTop, torsoW, trunksH);
-    // Draw bare skin above trunks
+    // V-neck cutout: skin-colour stepped triangle at top centre of torso
+    if (skinPal && costumePal) {
+      const vRows  = Math.min(9, Math.round(torsoH * 0.28));
+      const maxVW  = Math.round(torsoW * 0.42);
+      for (let i = 0; i < vRows; i++) {
+        const rowW = Math.max(2, Math.round(2 + i * (maxVW / vRows)));
+        ctx.fill(skinPal.base);
+        ctx.rect(cx - Math.round(rowW / 2), torsoTop + i, rowW, 1);
+      }
+    }
+
+    // El Aguilia — green shoulder trim lines along strap edges
+    if (isAguilia && footwearPal) {
+      ctx.fill(footwearPal.base);
+      const trimH = Math.round(torsoH * 0.38);
+      ctx.rect(torsoX + 2,           torsoTop, 2, trimH);
+      ctx.rect(torsoX + torsoW - 4,  torsoTop, 2, trimH);
+    }
+
+  } else {
+    // Trunks: skin on top, costume colour on bottom
+    const trunksH    = Math.round(torsoH * 0.52);
+    const trunksTop  = torsoTop + torsoH - trunksH;
+    const skinAreaH  = torsoH - trunksH;
+
+    // Skin upper torso
     if (skinPal) {
-      const skinTorsoH = torsoH - trunksH;
       ctx.fill(skinPal.base);
-      ctx.rect(torsoX, torsoTop, torsoW, skinTorsoH);
+      ctx.rect(torsoX, torsoTop, torsoW, skinAreaH);
       ctx.fill(skinPal.highlight);
-      ctx.rect(torsoX, torsoTop, Math.max(2, Math.round(torsoW * 0.12)), skinTorsoH);
+      ctx.rect(torsoX, torsoTop, hlW, skinAreaH);
       ctx.fill(skinPal.shadow);
-      ctx.rect(torsoX + torsoW - Math.max(2, Math.round(torsoW * 0.12)), torsoTop, Math.max(2, Math.round(torsoW * 0.12)), skinTorsoH);
+      ctx.rect(torsoX + torsoW - hlW, torsoTop, hlW, skinAreaH);
+    }
+
+    // Bogan — pectoral definition: two subtle shadow lines in upper chest
+    if (isBogan && skinPal && skinAreaH > 6) {
+      const pecW = Math.round((torsoW - 8) / 2);
+      const pecY = torsoTop + Math.round(skinAreaH * 0.35);
+      ctx.fill(skinPal.shadow);
+      ctx.rect(torsoX + 4,              pecY, pecW, 1);
+      ctx.rect(torsoX + 4 + pecW + 2,  pecY, pecW, 1);
+    }
+
+    // Trunks lower torso
+    if (costumePal) {
+      ctx.fill(costumePal.base);
+      ctx.rect(torsoX, trunksTop, torsoW, trunksH);
+      ctx.fill(costumePal.highlight);
+      ctx.rect(torsoX, trunksTop, hlW, trunksH);
+      ctx.fill(costumePal.shadow);
+      ctx.rect(torsoX + torsoW - hlW, trunksTop, hlW, trunksH);
     }
   }
 
-  // ── Arms ──────────────────────────────────────────────────────────────────
-  const armW = Math.max(2, Math.round(W * 0.13));
-  const armH = Math.round(torsoH * 0.80);
-  const armColor = skinPal;
-
-  if (armColor) {
+  // ── 5. Arms ───────────────────────────────────────────────────────────────
+  if (skinPal) {
     if (victory) {
-      // Arms raised: extend upward from torso top, angled outward
-      const armRaisedH = Math.round(torsoH * 0.95);
-      ctx.fill(armColor.base);
-      ctx.rect(torsoX - armW, torsoTop - armRaisedH + Math.round(armRaisedH * 0.3), armW, armRaisedH);
-      ctx.rect(torsoX + torsoW, torsoTop - armRaisedH + Math.round(armRaisedH * 0.3), armW, armRaisedH);
+      // Arms raised above head
+      const raisedH   = Math.round(torsoH * 0.95);
+      const raisedTop = torsoTop - raisedH + Math.round(raisedH * 0.30);
+      ctx.fill(skinPal.base);
+      ctx.rect(torsoX - armW - 1, raisedTop, armW, raisedH);
+      ctx.rect(torsoX + torsoW + 1, raisedTop, armW, raisedH);
+      ctx.fill(skinPal.highlight);
+      ctx.rect(torsoX - armW - 1, raisedTop, 2, raisedH);
+      ctx.rect(torsoX + torsoW + 1, raisedTop, 2, raisedH);
     } else {
-      // Arms at sides
-      ctx.fill(armColor.base);
-      ctx.rect(torsoX - armW, torsoTop + Math.round(torsoH * 0.08), armW, armH);
-      ctx.rect(torsoX + torsoW, torsoTop + Math.round(torsoH * 0.08), armW, armH);
-      ctx.fill(armColor.highlight);
-      ctx.rect(torsoX - armW, torsoTop + Math.round(torsoH * 0.08), 2, armH);
-      ctx.rect(torsoX + torsoW, torsoTop + Math.round(torsoH * 0.08), 2, armH);
+      // Arms hang at sides
+      ctx.fill(skinPal.base);
+      ctx.rect(torsoX - armW - 1, armTop, armW, armH);
+      ctx.rect(torsoX + torsoW + 1, armTop, armW, armH);
+      ctx.fill(skinPal.highlight);
+      ctx.rect(torsoX - armW - 1, armTop, 2, armH);
+      ctx.rect(torsoX + torsoW + 1, armTop, 2, armH);
     }
   }
 
-  // ── Head ──────────────────────────────────────────────────────────────────
-  const headR = Math.round(headH * 0.5);
-  const headCX = Math.round(W / 2);
-  const headCY = Math.round(headTop + headR);
-
+  // ── 6. Neck ───────────────────────────────────────────────────────────────
   if (skinPal) {
     ctx.fill(skinPal.base);
-    ctx.circle(headCX, headCY, headR);
-    // Highlight on upper-left quarter of head
-    ctx.fill(skinPal.highlight);
-    ctx.circle(headCX - Math.round(headR * 0.2), headCY - Math.round(headR * 0.2), Math.round(headR * 0.35));
-  }
-
-  // ── Profile nose (facing indicator) ──────────────────────────────────────
-  // A small bump on the RIGHT side of the head marks this as right-facing.
-  // When the Container has scaleX=-1 (left-facing wrestler), this flip makes
-  // the nose appear on the LEFT — giving a clear directional read.
-  if (skinPal) {
-    const noseW = Math.max(2, Math.round(headR * 0.35));
-    const noseH = Math.max(2, Math.round(headR * 0.28));
+    ctx.rect(neckX, headH, neckW, neckH);
+    // Subtle shadow on right side of neck
     ctx.fill(skinPal.shadow);
-    ctx.rect(headCX + Math.round(headR * 0.55), headCY - Math.round(headR * 0.1), noseW, noseH);
+    ctx.rect(neckX + neckW - 2, headH, 2, neckH);
   }
 
-  // ── Hair ──────────────────────────────────────────────────────────────────
-  const hairstyle = (appearance.hairstyle ?? '').toLowerCase();
+  // ── 7. Head ───────────────────────────────────────────────────────────────
+  if (skinPal) {
+    // Outline (1px larger in shadow colour)
+    ctx.fill(skinPal.shadow);
+    ctx.circle(headCX, headCY, headR + 1);
+    // Main face
+    ctx.fill(skinPal.base);
+    ctx.circle(headCX, headCY, headR);
+    // Highlight — upper-left quarter
+    ctx.fill(skinPal.highlight);
+    ctx.circle(
+      headCX - Math.round(headR * 0.22),
+      headCY - Math.round(headR * 0.22),
+      Math.round(headR * 0.32),
+    );
+  }
+
+  // Hair cap — drawn over the head circle
   if (hairPal && hairstyle !== 'none') {
     ctx.fill(hairPal.base);
     if (hairstyle === 'long') {
-      // Long hair: cap + curtains hanging below head
-      ctx.circle(headCX, headCY - Math.round(headR * 0.1), Math.round(headR * 0.85));
-      // Side curtains
-      const curtainW = Math.max(2, Math.round(headR * 0.45));
-      const curtainH = Math.round(torsoH * 0.45);
-      ctx.rect(headCX - headR - curtainW + 3, headCY, curtainW, curtainH);
-      ctx.rect(headCX + headR - 3, headCY, curtainW, curtainH);
+      ctx.circle(headCX, headCY - Math.round(headR * 0.12), Math.round(headR * 0.84));
     } else if (hairstyle === 'medium') {
-      // Medium: cap + short side pieces
-      ctx.circle(headCX, headCY - Math.round(headR * 0.1), Math.round(headR * 0.8));
-      const sideW = Math.max(2, Math.round(headR * 0.35));
-      const sideH = Math.round(headH * 0.35);
-      ctx.rect(headCX - headR - sideW + 3, headCY - Math.round(headR * 0.2), sideW, sideH);
-      ctx.rect(headCX + headR - 3, headCY - Math.round(headR * 0.2), sideW, sideH);
+      ctx.circle(headCX, headCY - Math.round(headR * 0.10), Math.round(headR * 0.80));
+      const sideW = Math.max(2, Math.round(headR * 0.30));
+      const sideH = Math.round(headH * 0.30);
+      ctx.rect(headCX - headR - sideW + 4, headCY - Math.round(headR * 0.18), sideW, sideH);
+      ctx.rect(headCX + headR - 4,         headCY - Math.round(headR * 0.18), sideW, sideH);
     } else if (hairstyle === 'short') {
-      // Short: just a cap on top
-      ctx.circle(headCX, headCY - Math.round(headR * 0.15), Math.round(headR * 0.75));
+      ctx.circle(headCX, headCY - Math.round(headR * 0.15), Math.round(headR * 0.74));
     }
-    // Highlight on hair
+    // Hair highlight
     ctx.fill(hairPal.highlight);
-    ctx.circle(headCX - Math.round(headR * 0.25), headCY - Math.round(headR * 0.4), Math.round(headR * 0.25));
+    ctx.circle(
+      headCX - Math.round(headR * 0.22),
+      headCY - Math.round(headR * 0.42),
+      Math.round(headR * 0.20),
+    );
   }
 
-  // ── Accessories ───────────────────────────────────────────────────────────
-  const accessory = (appearance.accessory ?? '').toLowerCase();
+  // ── 8. Face details (skipped if mask covers the face) ─────────────────────
+  if (accessory !== 'mask') {
+    // Eyes — two 2×2 dark squares in the upper third of face
+    const eyeY   = headCY - Math.round(headR * 0.12);
+    const eyeSep = Math.max(3, Math.round(headR * 0.30));
+    ctx.fill('#181828');
+    ctx.rect(headCX - eyeSep - 1, eyeY, 2, 2);
+    ctx.rect(headCX + eyeSep - 1, eyeY, 2, 2);
 
-  if (accessPal && accessory !== 'none') {
-    ctx.fill(accessPal.base);
-
-    if (accessory === 'wristbands') {
-      // Small bands at the wrist end of each arm
-      const bandH = Math.max(3, Math.round(armH * 0.18));
-      const bandTop = torsoTop + Math.round(torsoH * 0.08) + armH - bandH;
-      ctx.rect(torsoX - armW, bandTop, armW, bandH);
-      ctx.rect(torsoX + torsoW, bandTop, armW, bandH);
-      ctx.fill(accessPal.highlight);
-      ctx.rect(torsoX - armW, bandTop, armW, 2);
-      ctx.rect(torsoX + torsoW, bandTop, armW, 2);
-    } else if (accessory === 'mask') {
-      // Full-face mask: redraw head in mask color, leave eye strip in skin tone
-      ctx.fill(accessPal.base);
-      ctx.circle(headCX, headCY, headR);
-      // Eye strip (slightly darker)
-      if (skinPal) {
-        ctx.fill(accessPal.shadow);
-        const eyeH = Math.max(3, Math.round(headR * 0.28));
-        ctx.rect(headCX - Math.round(headR * 0.7), headCY - Math.round(headR * 0.15), Math.round(headR * 1.4), eyeH);
-      }
-      // Highlight on mask
-      ctx.fill(accessPal.highlight);
-      ctx.circle(headCX - Math.round(headR * 0.2), headCY - Math.round(headR * 0.25), Math.round(headR * 0.3));
-    } else if (accessory === 'weight belt') {
-      // Thick horizontal band across waist (bottom of bare torso / top of trunks)
-      const beltH = Math.max(4, Math.round(torsoH * 0.16));
-      const beltTop = torsoTop + Math.round(torsoH * 0.42);
-      ctx.rect(torsoX, beltTop, torsoW, beltH);
-      ctx.fill(accessPal.highlight);
-      ctx.rect(torsoX, beltTop, torsoW, 2);
-      // Belt buckle
-      const buckleW = Math.max(4, Math.round(torsoW * 0.2));
-      ctx.fill('#d4aa30');
-      ctx.rect(headCX - Math.round(buckleW / 2), beltTop + 1, buckleW, beltH - 2);
-    } else if (accessory === 'headgear') {
-      // Helmet-like band over top of head
-      const gearH = Math.max(3, Math.round(headR * 0.5));
-      ctx.rect(headCX - headR + 1, headCY - headR, headR * 2 - 2, gearH);
-      // Chin strap sides
-      ctx.rect(headCX - headR, headCY - Math.round(headR * 0.1), Math.max(2, Math.round(headR * 0.2)), Math.round(headR * 0.7));
-      ctx.rect(headCX + headR - Math.max(2, Math.round(headR * 0.2)), headCY - Math.round(headR * 0.1), Math.max(2, Math.round(headR * 0.2)), Math.round(headR * 0.7));
-      ctx.fill(accessPal.highlight);
-      ctx.rect(headCX - headR + 1, headCY - headR, headR * 2 - 2, 2);
-    } else if (accessory === 'kneepads') {
-      // Rectangular pads on upper-shin area of each leg
-      const padH = Math.max(4, Math.round(legsH * 0.28));
-      const padTop = legsTop + Math.round(legsH * 0.08);
-      ctx.rect(leftLegX,  padTop, legW, padH);
-      ctx.rect(rightLegX, padTop, legW, padH);
-      ctx.fill(accessPal.highlight);
-      ctx.rect(leftLegX,  padTop, legW, 2);
-      ctx.rect(rightLegX, padTop, legW, 2);
+    // Nose — right-side bump (direction indicator; mirrored by scaleX=-1 for left-facing)
+    if (skinPal) {
+      const noseW = Math.max(2, Math.round(headR * 0.30));
+      const noseH = Math.max(2, Math.round(headR * 0.22));
+      ctx.fill(skinPal.shadow);
+      ctx.rect(
+        headCX + Math.round(headR * 0.55),
+        headCY - Math.round(headR * 0.06),
+        noseW, noseH,
+      );
     }
+
+    // Mouth — lower third of face
+    const mouthY = headCY + Math.round(headR * 0.42);
+    ctx.fill('#181828');
+    if (smile) {
+      // Three-rect U-curve (corners up, centre down)
+      ctx.rect(headCX - 3, mouthY,     2, 1);
+      ctx.rect(headCX - 1, mouthY + 1, 2, 1);
+      ctx.rect(headCX + 1, mouthY,     2, 1);
+    } else {
+      // Flat neutral line
+      ctx.rect(headCX - 2, mouthY, 4, 1);
+    }
+  }
+
+  // ── 9. Accessories ─────────────────────────────────────────────────────────
+  if (!accessPal || accessory === 'none') return;
+
+  // ── Wristbands ──────────────────────────────────────────────────────────
+  if (accessory === 'wristbands') {
+    ctx.fill(accessPal.base);
+    if (victory) {
+      // Arms are raised — bands appear at the top (wrist) end of raised arms
+      const raisedH   = Math.round(torsoH * 0.95);
+      const raisedTop = torsoTop - raisedH + Math.round(raisedH * 0.30);
+      const bandH     = Math.max(3, Math.round(armH * 0.16));
+      ctx.rect(torsoX - armW - 1,   raisedTop, armW, bandH);
+      ctx.rect(torsoX + torsoW + 1, raisedTop, armW, bandH);
+    } else {
+      const bandH   = Math.max(3, Math.round(armH * 0.16));
+      const bandTop = armTop + armH - bandH;
+      ctx.rect(torsoX - armW - 1,   bandTop, armW, bandH);
+      ctx.rect(torsoX + torsoW + 1, bandTop, armW, bandH);
+      ctx.fill(accessPal.highlight);
+      ctx.rect(torsoX - armW - 1,   bandTop, armW, 2);
+      ctx.rect(torsoX + torsoW + 1, bandTop, armW, 2);
+    }
+  }
+
+  // ── Mask ─────────────────────────────────────────────────────────────────
+  else if (accessory === 'mask') {
+    // Mask base — full face circle
+    ctx.fill(accessPal.base);
+    ctx.circle(headCX, headCY, headR);
+
+    if (isAguilia && footwearPal) {
+      // El Aguilia Blanca: white base + distinctive green accents
+      const green = footwearPal; // green boots palette reused for mask detail
+
+      // Horizontal eye band
+      const eyeBandH = Math.max(4, Math.round(headR * 0.30));
+      const eyeBandY = headCY - Math.round(headR * 0.20);
+      ctx.fill(green.base);
+      ctx.rect(headCX - Math.round(headR * 0.85), eyeBandY,
+               Math.round(headR * 1.70), eyeBandH);
+
+      // Eye holes (white circles within the green band)
+      const holeR  = Math.max(2, Math.round(headR * 0.15));
+      const holeSep = Math.round(headR * 0.36);
+      ctx.fill(accessPal.base);
+      ctx.circle(headCX - holeSep, eyeBandY + Math.round(eyeBandH / 2), holeR);
+      ctx.circle(headCX + holeSep, eyeBandY + Math.round(eyeBandH / 2), holeR);
+
+      // Vertical cheek stripes below the eye band
+      const stripeW = Math.max(2, Math.round(headR * 0.18));
+      const stripeH = Math.round(headR * 0.45);
+      ctx.fill(green.base);
+      ctx.rect(headCX - Math.round(headR * 0.72),              eyeBandY + eyeBandH, stripeW, stripeH);
+      ctx.rect(headCX + Math.round(headR * 0.72) - stripeW, eyeBandY + eyeBandH, stripeW, stripeH);
+
+      // Thin forehead band
+      const fhY = headCY - Math.round(headR * 0.66);
+      ctx.rect(headCX - Math.round(headR * 0.52), fhY,
+               Math.round(headR * 1.04), 3);
+
+      // Diamond motif above forehead band (three stacked rects: 2-4-2 wide)
+      const dimY = fhY - 5;
+      ctx.rect(headCX - 1, dimY,     2, 1);
+      ctx.rect(headCX - 2, dimY + 1, 4, 1);
+      ctx.rect(headCX - 1, dimY + 2, 2, 1);
+
+      // Mask sheen highlight
+      ctx.fill(accessPal.highlight);
+      ctx.circle(
+        headCX - Math.round(headR * 0.25),
+        headCY - Math.round(headR * 0.32),
+        Math.round(headR * 0.20),
+      );
+
+    } else {
+      // Generic mask: shadow eye strip + highlight
+      ctx.fill(accessPal.shadow);
+      const eyeH = Math.max(3, Math.round(headR * 0.28));
+      ctx.rect(headCX - Math.round(headR * 0.70), headCY - Math.round(headR * 0.15),
+               Math.round(headR * 1.40), eyeH);
+      ctx.fill(accessPal.highlight);
+      ctx.circle(headCX - Math.round(headR * 0.20), headCY - Math.round(headR * 0.25),
+                 Math.round(headR * 0.28));
+    }
+  }
+
+  // ── Weight belt ───────────────────────────────────────────────────────────
+  else if (accessory === 'weight belt') {
+    // Positioned at the skin/trunks boundary
+    const trunksH  = Math.round(torsoH * 0.52);
+    const skinAreaH = torsoH - trunksH;
+    const beltH    = Math.max(5, Math.round(torsoH * 0.15));
+    const beltTop  = torsoTop + skinAreaH - Math.round(beltH * 0.5);
+    ctx.fill(accessPal.base);
+    ctx.rect(torsoX, beltTop, torsoW, beltH);
+    // Top highlight
+    ctx.fill(accessPal.highlight);
+    ctx.rect(torsoX, beltTop, torsoW, 2);
+    // Gold buckle centre
+    const buckleW = Math.max(4, Math.round(torsoW * 0.22));
+    ctx.fill('#d4aa30');
+    ctx.rect(cx - Math.round(buckleW / 2), beltTop + 1, buckleW, beltH - 2);
+  }
+
+  // ── Headgear ─────────────────────────────────────────────────────────────
+  else if (accessory === 'headgear') {
+    const gearH = Math.max(4, Math.round(headR * 0.55));
+    ctx.fill(accessPal.base);
+    // Main band across top of head
+    ctx.rect(headCX - headR + 2, headCY - headR, (headR - 2) * 2, gearH);
+    // Side straps (ear cups)
+    const strapW = Math.max(2, Math.round(headR * 0.22));
+    const strapH = Math.round(headR * 0.68);
+    ctx.rect(headCX - headR,          headCY - Math.round(headR * 0.08), strapW, strapH);
+    ctx.rect(headCX + headR - strapW, headCY - Math.round(headR * 0.08), strapW, strapH);
+    // Top highlight
+    ctx.fill(accessPal.highlight);
+    ctx.rect(headCX - headR + 2, headCY - headR, (headR - 2) * 2, 2);
+  }
+
+  // ── Kneepads ─────────────────────────────────────────────────────────────
+  else if (accessory === 'kneepads') {
+    // Centre pads on the knee line (60% of leg height)
+    const padH  = Math.max(4, Math.round(legsH * 0.22));
+    const kneeY = legsTop + Math.round(legsH * 0.60);
+    const padTop = kneeY - Math.round(padH / 2);
+    ctx.fill(accessPal.base);
+    ctx.rect(leftLegX,  padTop, legW, padH);
+    ctx.rect(rightLegX, padTop, legW, padH);
+    ctx.fill(accessPal.highlight);
+    ctx.rect(leftLegX,  padTop, legW, 2);
+    ctx.rect(rightLegX, padTop, legW, 2);
   }
 }

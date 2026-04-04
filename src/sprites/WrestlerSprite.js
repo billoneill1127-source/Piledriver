@@ -63,9 +63,7 @@ export class WrestlerSprite extends Phaser.GameObjects.Container {
     this._clearTweens();
     this._resetTransform();
 
-    this._draw(
-      (state === 'victory' || state === 'celebrate') ? 'victory' : 'idle'
-    );
+    this._draw(state);
 
     switch (state) {
       case 'idle':      this._startIdle();      break;
@@ -82,13 +80,16 @@ export class WrestlerSprite extends Phaser.GameObjects.Container {
 
   // ── Drawing ────────────────────────────────────────────────────────────────
 
-  _draw(pose) {
+  _draw(state) {
     const gfx = this._gfx;
     gfx.clear();
+    const isVictory   = state === 'victory' || state === 'celebrate';
+    const isSmiling   = isVictory;
     drawWrestler(gfx, this._wrestler, {
       width:   this._spriteW,
       height:  this._spriteH,
-      victory: pose === 'victory',
+      victory: isVictory,
+      smile:   isSmiling,
     });
   }
 
