@@ -67,6 +67,20 @@ function createCtx(rawCtx) {
         rawCtx.fill();
       }
     },
+    poly(points) {
+      if (points.length < 3) return;
+      if (isPhaser) {
+        rawCtx.fillPoints(points, true);
+      } else {
+        rawCtx.beginPath();
+        rawCtx.moveTo(Math.round(points[0].x), Math.round(points[0].y));
+        for (let i = 1; i < points.length; i++) {
+          rawCtx.lineTo(Math.round(points[i].x), Math.round(points[i].y));
+        }
+        rawCtx.closePath();
+        rawCtx.fill();
+      }
+    },
   };
 }
 
@@ -137,6 +151,11 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
   const torsoX    = Math.round(W * torsoXPct);
   const torsoW    = W - torsoX * 2;
 
+  // Trapezoid waist: bottom of torso is 75% of shoulder width, centered
+  const inset  = Math.round(torsoW * 0.125);
+  const waistX = torsoX + inset;
+  const waistW = torsoW - 2 * inset;
+
   // Neck width — Bogan has a thick neck (50% torso width)
   const neckWPct = isBogan ? 0.50 : 0.28;
   const neckW    = Math.max(4, Math.round(torsoW * neckWPct));
@@ -200,7 +219,9 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
     const bootExtra = isBoots ? Math.round(legsH * 0.18) : 0;
     const shoeH     = feetH + bootExtra;
     const shoeTop   = feetTop - bootExtra;
-    ctx.fill(footwearPal.base);
+    // Milkman: use darker brown for boots so they contrast against mid-brown trunks
+    const bootColor = isMilkman ? footwearPal.shadow : footwearPal.base;
+    ctx.fill(bootColor);
     ctx.rect(leftLegX,  shoeTop, legW, shoeH);
     ctx.rect(rightLegX, shoeTop, legW, shoeH);
     // Boot-top highlight line
@@ -209,18 +230,22 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
     ctx.rect(rightLegX, shoeTop, legW, 2);
   }
 
-  // ── 4. Torso ──────────────────────────────────────────────────────────────
-  const hlW = Math.max(2, Math.round(torsoW * 0.10)); // highlight/shadow strip width
+  // ── 4. Torso (trapezoid: full shoulder width at top, 75% waist width at bottom) ──────
+  const hlW = Math.max(2, Math.round(waistW * 0.10)); // highlight/shadow strip width
 
   if (isSinglet) {
-    // Full singlet: costume color top-to-bottom
+    // Full singlet: costume color, tapered trapezoid
     if (costumePal) {
       ctx.fill(costumePal.base);
-      ctx.rect(torsoX, torsoTop, torsoW, torsoH);
+      ctx.poly([
+        { x: torsoX,               y: torsoTop },
+        { x: torsoX + torsoW,      y: torsoTop },
+        { x: waistX + waistW,      y: torsoTop + torsoH },
+        { x: waistX,               y: torsoTop + torsoH },
+      ]);
+      // Subtle top-edge highlight at shoulders
       ctx.fill(costumePal.highlight);
-      ctx.rect(torsoX, torsoTop, hlW, torsoH);
-      ctx.fill(costumePal.shadow);
-      ctx.rect(torsoX + torsoW - hlW, torsoTop, hlW, torsoH);
+      ctx.rect(torsoX, torsoTop, torsoW, 2);
     }
 
     // V-neck cutout: skin-colour stepped triangle at top centre of torso
@@ -243,19 +268,23 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
     }
 
   } else {
-    // Trunks: skin on top, costume colour on bottom
-    const trunksH    = Math.round(torsoH * 0.52);
-    const trunksTop  = torsoTop + torsoH - trunksH;
-    const skinAreaH  = torsoH - trunksH;
+    // Trunks: skin tapered trapezoid on top, costume rectangle at waist on bottom
+    const trunksH   = Math.round(torsoH * 0.52);
+    const trunksTop = torsoTop + torsoH - trunksH;
+    const skinAreaH = torsoH - trunksH;
 
-    // Skin upper torso
+    // Skin upper torso — tapered trapezoid from shoulders to waist
     if (skinPal) {
       ctx.fill(skinPal.base);
-      ctx.rect(torsoX, torsoTop, torsoW, skinAreaH);
+      ctx.poly([
+        { x: torsoX,               y: torsoTop },
+        { x: torsoX + torsoW,      y: torsoTop },
+        { x: waistX + waistW,      y: trunksTop },
+        { x: waistX,               y: trunksTop },
+      ]);
+      // Top highlight at shoulder edge
       ctx.fill(skinPal.highlight);
-      ctx.rect(torsoX, torsoTop, hlW, skinAreaH);
-      ctx.fill(skinPal.shadow);
-      ctx.rect(torsoX + torsoW - hlW, torsoTop, hlW, skinAreaH);
+      ctx.rect(torsoX, torsoTop, torsoW, 2);
     }
 
     // Bogan — pectoral definition: two subtle shadow lines in upper chest
@@ -263,18 +292,18 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
       const pecW = Math.round((torsoW - 8) / 2);
       const pecY = torsoTop + Math.round(skinAreaH * 0.35);
       ctx.fill(skinPal.shadow);
-      ctx.rect(torsoX + 4,              pecY, pecW, 1);
-      ctx.rect(torsoX + 4 + pecW + 2,  pecY, pecW, 1);
+      ctx.rect(torsoX + 4,             pecY, pecW, 1);
+      ctx.rect(torsoX + 4 + pecW + 2, pecY, pecW, 1);
     }
 
-    // Trunks lower torso
+    // Trunks lower torso — rectangle at waist width
     if (costumePal) {
       ctx.fill(costumePal.base);
-      ctx.rect(torsoX, trunksTop, torsoW, trunksH);
+      ctx.rect(waistX, trunksTop, waistW, trunksH);
       ctx.fill(costumePal.highlight);
-      ctx.rect(torsoX, trunksTop, hlW, trunksH);
+      ctx.rect(waistX, trunksTop, hlW, trunksH);
       ctx.fill(costumePal.shadow);
-      ctx.rect(torsoX + torsoW - hlW, trunksTop, hlW, trunksH);
+      ctx.rect(waistX + waistW - hlW, trunksTop, hlW, trunksH);
     }
   }
 
@@ -339,7 +368,10 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
       ctx.rect(headCX - headR - sideW + 4, headCY - Math.round(headR * 0.18), sideW, sideH);
       ctx.rect(headCX + headR - 4,         headCY - Math.round(headR * 0.18), sideW, sideH);
     } else if (hairstyle === 'short') {
-      ctx.circle(headCX, headCY - Math.round(headR * 0.15), Math.round(headR * 0.74));
+      // Dark cap rectangle sitting on top of the head
+      const capW = Math.round(headR * 1.40);   // 70% of head diameter
+      const capH = Math.round(headR * 0.50);   // 25% of head diameter
+      ctx.rect(headCX - Math.round(capW / 2), headCY - headR, capW, capH);
     }
     // Hair highlight
     ctx.fill(hairPal.highlight);
@@ -352,12 +384,13 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
 
   // ── 8. Face details (skipped if mask covers the face) ─────────────────────
   if (accessory !== 'mask') {
-    // Eyes — two 2×2 dark squares in the upper third of face
-    const eyeY   = headCY - Math.round(headR * 0.12);
-    const eyeSep = Math.max(3, Math.round(headR * 0.30));
-    ctx.fill('#181828');
-    ctx.rect(headCX - eyeSep - 1, eyeY, 2, 2);
-    ctx.rect(headCX + eyeSep - 1, eyeY, 2, 2);
+    // Eyes: two 2×2 filled rectangles at 35%/65% horizontal, 38% vertical of head circle
+    // (all percentages measured within the head circle bounding box)
+    const eyeY   = Math.round(headCY - headR + 0.38 * (2 * headR));  // headCY - 0.24*headR
+    const eyeOff = Math.round(headR * 0.30);                          // 35%/65% → ±30% of radius
+    ctx.fill('#2a1a0a');
+    ctx.rect(headCX - eyeOff - 1, eyeY, 2, 2);
+    ctx.rect(headCX + eyeOff - 1, eyeY, 2, 2);
 
     // Nose — right-side bump (direction indicator; mirrored by scaleX=-1 for left-facing)
     if (skinPal) {
@@ -365,23 +398,24 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
       const noseH = Math.max(2, Math.round(headR * 0.22));
       ctx.fill(skinPal.shadow);
       ctx.rect(
-        headCX + Math.round(headR * 0.55),
-        headCY - Math.round(headR * 0.06),
+        headCX + Math.round(headR * 0.20),
+        headCY + Math.round(headR * 0.08),
         noseW, noseH,
       );
     }
 
-    // Mouth — lower third of face
-    const mouthY = headCY + Math.round(headR * 0.42);
-    ctx.fill('#181828');
+    // Mouth: 50% horizontal, 65% vertical of head circle
+    const mouthX = headCX;
+    const mouthY = Math.round(headCY - headR + 0.65 * (2 * headR));  // headCY + 0.30*headR
+    ctx.fill('#2a1a0a');
     if (smile) {
-      // Three-rect U-curve (corners up, centre down)
-      ctx.rect(headCX - 3, mouthY,     2, 1);
-      ctx.rect(headCX - 1, mouthY + 1, 2, 1);
-      ctx.rect(headCX + 1, mouthY,     2, 1);
+      // Shallow arc: left and right corners up, centre down
+      ctx.rect(mouthX - 4, mouthY,     2, 1); // left corner
+      ctx.rect(mouthX - 1, mouthY + 1, 2, 1); // centre (lower)
+      ctx.rect(mouthX + 3, mouthY,     2, 1); // right corner
     } else {
       // Flat neutral line
-      ctx.rect(headCX - 2, mouthY, 4, 1);
+      ctx.rect(mouthX - 2, mouthY, 4, 1);
     }
   }
 
@@ -472,7 +506,7 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
   }
 
   // ── Weight belt ───────────────────────────────────────────────────────────
-  else if (accessory === 'weight belt') {
+  else if (accessory === 'weight belt' && !isTank) {
     // Positioned at the skin/trunks boundary
     const trunksH  = Math.round(torsoH * 0.52);
     const skinAreaH = torsoH - trunksH;
@@ -508,10 +542,12 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
   // ── Kneepads ─────────────────────────────────────────────────────────────
   else if (accessory === 'kneepads') {
     // Centre pads on the knee line (60% of leg height)
-    const padH  = Math.max(4, Math.round(legsH * 0.22));
-    const kneeY = legsTop + Math.round(legsH * 0.60);
+    const padH   = Math.max(4, Math.round(legsH * 0.22));
+    const kneeY  = legsTop + Math.round(legsH * 0.60);
     const padTop = kneeY - Math.round(padH / 2);
-    ctx.fill(accessPal.base);
+    // Milkman: use lighter brown highlight so pads contrast above dark boots and mid trunks
+    const padBase = isMilkman ? accessPal.highlight : accessPal.base;
+    ctx.fill(padBase);
     ctx.rect(leftLegX,  padTop, legW, padH);
     ctx.rect(rightLegX, padTop, legW, padH);
     ctx.fill(accessPal.highlight);
