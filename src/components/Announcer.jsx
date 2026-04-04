@@ -1,191 +1,199 @@
 /**
  * Announcer.jsx
  *
- * Two announcer SVG figures centered at the bottom of the overlay with a
- * commentary text box between them. A new line fades in and the active
- * speaker leans inward; the idle speaker leans slightly away.
- * Speakers alternate each line.
+ * Broadcast desk layout:
+ *   [Commentary box] [Chip + Bobby seated at table]
+ *
+ * The commentary box sits to the left like a broadcast lower-third.
+ * The two announcers sit right next to each other behind a wood desk.
+ * The active speaker leans toward the box (left); the idle speaker
+ * leans slightly away (right).
  */
 
 import { useState, useEffect, useRef } from 'react';
 
-// lean: 'toward' | 'away' | 'neutral'
-const chipTransform = {
-  toward:  'translateX(14px) scale(1.08)',
-  away:    'translateX(-4px)',
-  neutral: 'translateX(0)',
-};
-const bobbyTransform = {
-  toward:  'scaleX(-1) translateX(14px) scale(1.08)',
-  away:    'scaleX(-1) translateX(-4px)',
-  neutral: 'scaleX(-1)',
-};
+// ── Desk ──────────────────────────────────────────────────────────────────────
 
-// ── SVG Figures ──────────────────────────────────────────────────────────────
-
-function ChipChesswick({ lean }) {
-  // Red suit, left side, faces right
+function Desk() {
   return (
-    <svg width="52" height="90" viewBox="0 0 52 90" xmlns="http://www.w3.org/2000/svg"
-      style={{
-        display: 'block',
-        transform: chipTransform[lean] ?? chipTransform.neutral,
-        transition: 'transform 400ms ease',
-      }}>
-      {/* Head */}
-      <ellipse cx="26" cy="14" rx="10" ry="12" fill="#f4c07a" />
-      {/* Hair */}
-      <ellipse cx="26" cy="5" rx="10" ry="5" fill="#5c3a1e" />
-      {/* Suit jacket */}
-      <rect x="11" y="28" width="30" height="34" rx="4" fill="#cc2222" />
-      {/* White shirt / tie area */}
-      <rect x="22" y="28" width="8" height="20" fill="#ffffff" />
-      <polygon points="26,34 23,50 29,50" fill="#cc2222" />
-      {/* Arms */}
-      <rect x="4" y="29" width="9" height="22" rx="4" fill="#cc2222" />
-      <rect x="39" y="29" width="9" height="22" rx="4" fill="#cc2222" />
-      {/* Hands */}
-      <ellipse cx="8"  cy="52" rx="5" ry="5" fill="#f4c07a" />
-      <ellipse cx="44" cy="52" rx="5" ry="5" fill="#f4c07a" />
-      {/* Microphone in right hand */}
-      <rect x="40" y="54" width="5" height="12" rx="2" fill="#888" />
-      <ellipse cx="42" cy="54" rx="4" ry="4" fill="#555" />
-      {/* Trousers */}
-      <rect x="14" y="60" width="11" height="26" rx="3" fill="#881111" />
-      <rect x="27" y="60" width="11" height="26" rx="3" fill="#881111" />
-      {/* Shoes */}
-      <ellipse cx="19" cy="87" rx="8" ry="4" fill="#222" />
-      <ellipse cx="33" cy="87" rx="8" ry="4" fill="#222" />
+    <svg width="160" height="28" viewBox="0 0 160 28" xmlns="http://www.w3.org/2000/svg"
+      style={{ display: 'block' }}>
+      {/* Main surface */}
+      <rect x="0" y="0" width="160" height="28" rx="3" fill="#4a2e0a" />
+      {/* Top highlight edge */}
+      <rect x="0" y="0" width="160" height="5" rx="3" fill="#6b4518" />
+      {/* Bottom shadow */}
+      <rect x="2" y="23" width="156" height="4" rx="1" fill="#2d1a06" />
     </svg>
   );
 }
 
-function BobbyDonovan({ lean }) {
-  // Purple suit, right side, faces left (mirror via scaleX)
+// ── Seated figure components ───────────────────────────────────────────────────
+// lean: 'toward' | 'away' | 'neutral'
+// 'toward' = lean left (toward commentary box): translateX(-12px) scale(1.08)
+// 'away'   = lean right: translateX(4px)
+
+function ChipChesswick({ lean }) {
+  const t = lean === 'toward' ? 'rotate(5deg) translateX(-12px) scale(1.08)'
+          : lean === 'away'   ? 'rotate(5deg) translateX(4px)'
+          :                     'rotate(5deg)';
   return (
-    <svg width="52" height="90" viewBox="0 0 52 90" xmlns="http://www.w3.org/2000/svg"
-      style={{
-        display: 'block',
-        transform: bobbyTransform[lean] ?? bobbyTransform.neutral,
-        transition: 'transform 400ms ease',
-      }}>
-      {/* Head */}
-      <ellipse cx="26" cy="14" rx="10" ry="12" fill="#f4c07a" />
-      {/* Hair — slicked back */}
-      <ellipse cx="26" cy="5" rx="10" ry="5" fill="#1a1a1a" />
-      <rect x="16" y="4" width="20" height="6" rx="2" fill="#1a1a1a" />
-      {/* Suit jacket */}
-      <rect x="11" y="28" width="30" height="34" rx="4" fill="#6a2fa0" />
-      {/* White shirt / tie area */}
-      <rect x="22" y="28" width="8" height="20" fill="#ffffff" />
-      <polygon points="26,34 23,50 29,50" fill="#6a2fa0" />
-      {/* Arms */}
-      <rect x="4" y="29" width="9" height="22" rx="4" fill="#6a2fa0" />
-      <rect x="39" y="29" width="9" height="22" rx="4" fill="#6a2fa0" />
-      {/* Hands */}
-      <ellipse cx="8"  cy="52" rx="5" ry="5" fill="#f4c07a" />
-      <ellipse cx="44" cy="52" rx="5" ry="5" fill="#f4c07a" />
-      {/* Microphone */}
-      <rect x="40" y="54" width="5" height="12" rx="2" fill="#888" />
-      <ellipse cx="42" cy="54" rx="4" ry="4" fill="#555" />
-      {/* Trousers */}
-      <rect x="14" y="60" width="11" height="26" rx="3" fill="#4a1f70" />
-      <rect x="27" y="60" width="11" height="26" rx="3" fill="#4a1f70" />
-      {/* Shoes */}
-      <ellipse cx="19" cy="87" rx="8" ry="4" fill="#222" />
-      <ellipse cx="33" cy="87" rx="8" ry="4" fill="#222" />
-    </svg>
+    <div style={{ transform: t, transition: 'transform 300ms ease', transformOrigin: 'bottom center' }}>
+      <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg"
+        style={{ display: 'block' }}>
+        {/* Head */}
+        <ellipse cx="20" cy="13" rx="9" ry="10" fill="#f4c07a" />
+        {/* Brown hair */}
+        <ellipse cx="20" cy="5"  rx="9" ry="5"  fill="#5c3a1e" />
+        {/* Headset band */}
+        <path d="M 10,13 Q 20,1 30,13" stroke="#444" strokeWidth="2" fill="none" />
+        <ellipse cx="10" cy="13" rx="3" ry="3" fill="#333" />
+        <ellipse cx="30" cy="13" rx="3" ry="3" fill="#333" />
+        {/* Red jacket */}
+        <rect x="5" y="25" width="30" height="25" rx="3" fill="#cc2222" />
+        {/* White shirt */}
+        <rect x="15" y="25" width="10" height="18" fill="#ffffff" />
+        {/* Tie */}
+        <polygon points="20,29 17,43 23,43" fill="#cc2222" />
+        {/* Lapels */}
+        <polygon points="15,25 7,25 15,35" fill="#aa1111" />
+        <polygon points="25,25 33,25 25,35" fill="#aa1111" />
+      </svg>
+    </div>
+  );
+}
+
+function BobbyDonovan({ lean }) {
+  const t = lean === 'toward' ? 'rotate(-5deg) translateX(-12px) scale(1.08)'
+          : lean === 'away'   ? 'rotate(-5deg) translateX(4px)'
+          :                     'rotate(-5deg)';
+  return (
+    <div style={{ transform: t, transition: 'transform 300ms ease', transformOrigin: 'bottom center' }}>
+      <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg"
+        style={{ display: 'block' }}>
+        {/* Head */}
+        <ellipse cx="20" cy="13" rx="9" ry="10" fill="#f4c07a" />
+        {/* Grey/silver hair */}
+        <ellipse cx="20" cy="5"  rx="9" ry="5"  fill="#8a8a8a" />
+        <rect x="11" y="4" width="18" height="5" rx="2" fill="#6a6a6a" />
+        {/* Headset band */}
+        <path d="M 10,13 Q 20,1 30,13" stroke="#444" strokeWidth="2" fill="none" />
+        <ellipse cx="10" cy="13" rx="3" ry="3" fill="#333" />
+        <ellipse cx="30" cy="13" rx="3" ry="3" fill="#333" />
+        {/* Purple jacket */}
+        <rect x="5" y="25" width="30" height="25" rx="3" fill="#6a2fa0" />
+        {/* White shirt */}
+        <rect x="15" y="25" width="10" height="18" fill="#ffffff" />
+        {/* Tie */}
+        <polygon points="20,29 17,43 23,43" fill="#6a2fa0" />
+        {/* Lapels */}
+        <polygon points="15,25 7,25 15,35" fill="#4a1f70" />
+        <polygon points="25,25 33,25 25,35" fill="#4a1f70" />
+      </svg>
+    </div>
   );
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export function Announcer({ commentaryLine }) {
-  const [displayLine, setDisplayLine] = useState('');
-  const [visible,     setVisible]     = useState(false);
-  const [speaker,     setSpeaker]     = useState(0); // 0 = Chip, 1 = Bobby
+export function Announcer({ commentaryLine, commentarySpeaker }) {
+  const [displayLine,    setDisplayLine]    = useState('');
+  const [displaySpeaker, setDisplaySpeaker] = useState('CHIP');
+  const [visible,        setVisible]        = useState(false);
   const prevLineRef = useRef('');
 
   useEffect(() => {
     if (!commentaryLine || commentaryLine === prevLineRef.current) return;
     prevLineRef.current = commentaryLine;
 
-    // Fade out, swap text, fade in
     setVisible(false);
     const swap = setTimeout(() => {
       setDisplayLine(commentaryLine);
-      setSpeaker(prev => 1 - prev);
+      setDisplaySpeaker(commentarySpeaker ?? 'CHIP');
       setVisible(true);
     }, 150);
 
     return () => clearTimeout(swap);
-  }, [commentaryLine]);
+  }, [commentaryLine, commentarySpeaker]);
 
-  const chipLean  = visible ? (speaker === 0 ? 'toward' : 'away') : 'neutral';
-  const bobbyLean = visible ? (speaker === 1 ? 'toward' : 'away') : 'neutral';
+  const chipLean  = visible ? (displaySpeaker === 'CHIP'  ? 'toward' : 'away') : 'neutral';
+  const bobbyLean = visible ? (displaySpeaker === 'BOBBY' ? 'toward' : 'away') : 'neutral';
 
   return (
     <div style={{
-      position:   'absolute',
-      bottom:     20,
-      left:       '50%',
-      transform:  'translateX(-50%)',
-      width:      340,
-      display:    'flex',
-      alignItems: 'flex-end',
+      position:      'absolute',
+      bottom:        20,
+      left:          '50%',
+      transform:     'translateX(-50%)',
+      width:         380,
+      display:       'flex',
+      alignItems:    'flex-end',
+      gap:           8,
       pointerEvents: 'none',
-      userSelect: 'none',
+      userSelect:    'none',
     }}>
-      {/* Chip Chesswick — left */}
-      <div style={{ flexShrink: 0 }}>
-        <ChipChesswick lean={chipLean} />
-        <div style={{
-          textAlign:  'center',
-          fontSize:   '9px',
-          color:      '#cc4444',
-          fontFamily: 'monospace',
-          marginTop:  2,
-        }}>CHIP</div>
-      </div>
 
-      {/* Commentary box — 220px between the two figures */}
-      <div style={{
-        width:          220,
-        flexShrink:     0,
-        margin:         '0 4px 8px',
-        padding:        '8px 10px',
-        background:     'rgba(0,0,0,0.78)',
-        border:         '1px solid rgba(255,255,255,0.15)',
-        borderRadius:   6,
-        minHeight:      40,
-        display:        'flex',
-        alignItems:     'center',
-        justifyContent: 'center',
-        opacity:        visible ? 1 : 0,
-        transition:     'opacity 300ms ease',
-      }}>
-        <span style={{
-          fontFamily: 'monospace',
-          fontSize:   '12px',
-          color:      speaker === 0 ? '#ff9999' : '#cc99ff',
-          textAlign:  'center',
-          lineHeight: 1.4,
+      {/* ── Commentary box — left of the desk ── */}
+      <div style={{ width: 200, flexShrink: 0, paddingBottom: 43 }}>
+        <div style={{
+          background:     '#1a1a2e',
+          border:         '1px solid #d4af37',
+          borderRadius:   6,
+          padding:        '8px 10px',
+          minHeight:      62,
+          display:        'flex',
+          flexDirection:  'column',
+          justifyContent: 'center',
+          opacity:        visible ? 1 : 0,
+          transition:     'opacity 300ms ease',
         }}>
-          {displayLine}
-        </span>
+          <div style={{
+            color:         '#d4af37',
+            fontSize:      '11px',
+            fontFamily:    'monospace',
+            fontWeight:    'bold',
+            marginBottom:  4,
+            letterSpacing: 1,
+          }}>
+            {displaySpeaker}:
+          </div>
+          <div style={{
+            color:      '#ffffff',
+            fontSize:   '13px',
+            fontFamily: 'monospace',
+            lineHeight: 1.4,
+          }}>
+            {displayLine}
+          </div>
+        </div>
       </div>
 
-      {/* Bobby "The Brain" Donovan — right */}
-      <div style={{ flexShrink: 0 }}>
-        <BobbyDonovan lean={bobbyLean} />
+      {/* ── Desk + figures ── */}
+      <div style={{ flexShrink: 0, width: 172, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {/* Figures side-by-side, no gap */}
+        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+          <ChipChesswick lean={chipLean} />
+          <BobbyDonovan  lean={bobbyLean} />
+        </div>
+        {/* Desk overlaps the figure bottoms slightly */}
+        <div style={{ marginTop: -10, width: 160 }}>
+          <Desk />
+        </div>
+        {/* Name labels */}
         <div style={{
-          textAlign:  'center',
-          fontSize:   '9px',
-          color:      '#9966cc',
-          fontFamily: 'monospace',
-          marginTop:  2,
-        }}>BOBBY</div>
+          display:        'flex',
+          width:          160,
+          justifyContent: 'space-around',
+          marginTop:      4,
+          fontFamily:     'monospace',
+          fontSize:       '9px',
+          letterSpacing:  1,
+        }}>
+          <span style={{ color: '#cc4444' }}>CHIP</span>
+          <span style={{ color: '#9966cc' }}>BOBBY</span>
+        </div>
       </div>
+
     </div>
   );
 }

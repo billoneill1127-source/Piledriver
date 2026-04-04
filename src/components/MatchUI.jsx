@@ -449,6 +449,7 @@ export default function MatchUI({ p1, p2, p2IsCPU, match, onReturn }) {
     availableOffenseMoves, availableDefenseMoves,
     handlePinDecision,
     commentaryLine,
+    commentarySpeaker,
   } = match;
 
   const defenderName = offenseId === p1.id ? p2.name : p1.name;
@@ -497,7 +498,7 @@ export default function MatchUI({ p1, p2, p2IsCPU, match, onReturn }) {
 
       {/* Announcer — hidden during match_over */}
       {phase !== 'match_over' && (
-        <Announcer commentaryLine={commentaryLine} />
+        <Announcer commentaryLine={commentaryLine} commentarySpeaker={commentarySpeaker} />
       )}
 
       {/* Bottom HUD — hidden during match_over */}

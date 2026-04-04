@@ -92,8 +92,9 @@ export function useMatch({ p1, p2, p2IsCPU }) {
   const [log, setLog] = useState([]);
   const [pendingOffense, setPendingOffense] = useState(null);
   const [pendingDefense, setPendingDefense] = useState(null);
-  const [winNote,        setWinNote]        = useState(null);
-  const [commentaryLine, setCommentaryLine] = useState('');
+  const [winNote,           setWinNote]           = useState(null);
+  const [commentaryLine,    setCommentaryLine]    = useState('');
+  const [commentarySpeaker, setCommentarySpeaker] = useState('CHIP');
 
   // Guard: prevents double-execute in React StrictMode
   const executingRef = useRef(false);
@@ -102,6 +103,14 @@ export function useMatch({ p1, p2, p2IsCPU }) {
   const staminaLowFiredRef = useRef(new Set());
   // Tracks consecutive successful moves by the same attacker
   const momentumRef = useRef({ lastAttackerId: null, count: 0 });
+  // Alternates speaker between CHIP and BOBBY each line
+  const speakerIndexRef = useRef(0); // 0 = CHIP, 1 = BOBBY
+
+  function emitCommentary(line) {
+    setCommentarySpeaker(speakerIndexRef.current === 0 ? 'CHIP' : 'BOBBY');
+    speakerIndexRef.current = 1 - speakerIndexRef.current;
+    setCommentaryLine(line);
+  }
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const matchOver  = winner !== null;
@@ -211,7 +220,7 @@ export function useMatch({ p1, p2, p2IsCPU }) {
         }
       }
     }
-    if (trigger) setCommentaryLine(commentary.getLine(trigger, atkName, defName));
+    if (trigger) emitCommentary(commentary.getLine(trigger, atkName, defName));
     // ── End commentary ─────────────────────────────────────────────────────
 
     setStamina(newStamina);
@@ -253,7 +262,7 @@ export function useMatch({ p1, p2, p2IsCPU }) {
     const finishMatchOver = () => {
       const winnerObj = loader.getWrestler(res.winner);
       const loserObj  = loader.getWrestler(res.winner === p1.id ? p2.id : p1.id);
-      setCommentaryLine(commentary.getLine('match_over', winnerObj, loserObj));
+      emitCommentary(commentary.getLine('match_over', winnerObj, loserObj));
       MatchEvents.emit('matchOver', {
         winner:     res.winner,
         winnerName: winnerObj?.name ?? 'Winner',
@@ -268,7 +277,7 @@ export function useMatch({ p1, p2, p2IsCPU }) {
       if (res.matchOver) {
         if (isDoubleCheckSub) {
           // Phase 2: drama banner "can't get out of it!" for 2000ms, then match over
-          setCommentaryLine(commentary.getLine('submission_fading', atkName, defName));
+          emitCommentary(commentary.getLine('submission_fading', atkName, defName));
           setPhase('submission_drama');
           setTimeout(finishMatchOver, 2000);
         } else {
@@ -293,7 +302,7 @@ export function useMatch({ p1, p2, p2IsCPU }) {
   // ── Match-start commentary (fires once, 500 ms after mount) ─────────────
   useEffect(() => {
     const timer = setTimeout(() => {
-      setCommentaryLine(
+      emitCommentary(
         commentary.getLine('match_start', loader.getWrestler(p1.id), loader.getWrestler(p2.id)),
       );
     }, 500);
@@ -303,7 +312,7 @@ export function useMatch({ p1, p2, p2IsCPU }) {
   // ── Pin-prompt commentary ────────────────────────────────────────────────
   useEffect(() => {
     if (phase !== 'pin_prompt' || matchOver) return;
-    setCommentaryLine(
+    emitCommentary(
       commentary.getLine('pin_attempt', loader.getWrestler(offenseId), loader.getWrestler(defenseId)),
     );
   }, [phase, matchOver]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -391,5 +400,6 @@ export function useMatch({ p1, p2, p2IsCPU }) {
     handlePinDecision,
     // Commentary
     commentaryLine,
+    commentarySpeaker,
   };
 }
