@@ -78,7 +78,6 @@ export function createMatchScene(p1Data, p2Data) {
       // ── Wrestler sprites ─────────────────────────────────────────────────
       const MAT_BOTTOM = 452;
       const P1_X = 230, P2_X = 570;
-      const LABEL_OFFSET = 32 * 3 + 8; // frame height × scale + gap
 
       this.p1Sprite = new WrestlerSprite(this, P1_X, MAT_BOTTOM, p1Data, 'right');
       this.p2Sprite = new WrestlerSprite(this, P2_X, MAT_BOTTOM, p2Data, 'left');
@@ -93,9 +92,10 @@ export function createMatchScene(p1Data, p2Data) {
 
       // ── Name labels ──────────────────────────────────────────────────────
       const txtStyle = { fontFamily: 'monospace', fontSize: '10px' };
-      this.add.text(P1_X, MAT_BOTTOM - LABEL_OFFSET, p1Data.name,
+      const labelY   = MAT_BOTTOM - this.p1Sprite._spriteH - 8;
+      this.add.text(P1_X, labelY, p1Data.name,
         { ...txtStyle, color: '#44ccff' }).setOrigin(0.5, 1);
-      this.add.text(P2_X, MAT_BOTTOM - LABEL_OFFSET, p2Data.name,
+      this.add.text(P2_X, labelY, p2Data.name,
         { ...txtStyle, color: '#ff7777' }).setOrigin(0.5, 1);
 
       // ── Stamina cache (updated by 'stamina' event) ───────────────────────

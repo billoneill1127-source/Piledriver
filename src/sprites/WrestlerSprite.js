@@ -16,7 +16,7 @@
 import Phaser from 'phaser';
 
 const FRAME_H = 32;
-const SCALE   = 3;
+const SCALE   = 4.5;
 
 export class WrestlerSprite extends Phaser.GameObjects.Sprite {
   /**
@@ -63,60 +63,62 @@ export class WrestlerSprite extends Phaser.GameObjects.Sprite {
 
     const id = this._wrestler.id;
 
+    // Always reset timeScale before playing so prior stunned/celebrate
+    // rates don't bleed into the next state
+    this.anims.setTimeScale(1);
+
+    const _play = (key) => {
+      const exists = this.scene.anims.exists(key);
+      // eslint-disable-next-line no-console
+      console.log('[WrestlerSprite] setState:', state, '→', key, exists ? '✓' : '✗ MISSING');
+      if (exists) this.play(key);
+    };
+
     switch (state) {
       case 'idle':
-        this.anims.setTimeScale(1);
-        this.play(`${id}_Idle`);
+        _play(`${id}_Idle`);
         break;
 
       case 'strike':
-        this.anims.setTimeScale(1);
-        this.play(`${id}_Strike`);
+        _play(`${id}_Strike`);
         this.once('animationcomplete', () => {
           if (this._state === 'strike') this.setState('idle');
         });
         break;
 
       case 'hit':
-        this.anims.setTimeScale(1);
-        this.play(`${id}_Hit Reaction`);
+        _play(`${id}_Hit Reaction`);
         this.once('animationcomplete', () => {
           if (this._state === 'hit') this.setState('idle');
         });
         break;
 
       case 'down':
-        // Play Down animation once and hold the last frame
-        this.anims.setTimeScale(1);
-        this.play(`${id}_Down`);
+        // Play Down once and hold the last frame
+        _play(`${id}_Down`);
         break;
 
       case 'grounded':
-        // Same as down — wrestler is on the mat
-        this.anims.setTimeScale(1);
-        this.play(`${id}_Down`);
+        _play(`${id}_Down`);
         break;
 
       case 'stunned':
         // Slow idle bob (dazed) at half speed
-        this.play(`${id}_Idle`);
+        _play(`${id}_Idle`);
         this.anims.setTimeScale(0.5);
         break;
 
       case 'victory':
-        this.anims.setTimeScale(1);
-        this.play(`${id}_Victory`);
+        _play(`${id}_Victory`);
         break;
 
       case 'celebrate':
-        // Victory animation at 150% speed for extra exuberance
-        this.play(`${id}_Victory`);
+        _play(`${id}_Victory`);
         this.anims.setTimeScale(1.5);
         break;
 
       default:
-        this.anims.setTimeScale(1);
-        this.play(`${id}_Idle`);
+        _play(`${id}_Idle`);
         break;
     }
 

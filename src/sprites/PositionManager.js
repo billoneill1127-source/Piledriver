@@ -10,11 +10,11 @@
  *   x: 120 – 680   (rope at 102 / 698, small inset buffer)
  *   y: 452          (mat level, fixed — only x changes)
  *
- * Per-wrestler x clamps:
- *   P1: 120 – 460   (can't cross ring center)
- *   P2: 340 – 680   (same, mirrored)
+ * Per-wrestler x clamps (adjusted for 4.5× sprite scale ≈ 144px wide):
+ *   P1: 144 – 420   (can't cross ring center)
+ *   P2: 380 – 656   (same, mirrored)
  *
- * Minimum gap between wrestlers: 60 px.
+ * Minimum gap between wrestlers: 80 px.
  */
 
 const P1_START = 230;
@@ -25,10 +25,12 @@ const RING_LEFT  = 120;
 const RING_RIGHT = 680;
 
 // Per-wrestler x limits
-const P1_MAX_X = 460;
-const P2_MIN_X = 340;
+const P1_MIN_X = 144;
+const P1_MAX_X = 420;
+const P2_MIN_X = 380;
+const P2_MAX_X = 656;
 
-const MIN_GAP      = 60;
+const MIN_GAP      = 80;
 const GRAPPLE_MIN  = 320;
 const GRAPPLE_MAX  = 480;
 
@@ -217,9 +219,9 @@ export class PositionManager {
   /** Write raw x for a single wrestler, clamped to their ring bounds. */
   _setRaw(wrestlerId, x) {
     if (wrestlerId === this._p1Id) {
-      this.p1Pos.x = Math.max(RING_LEFT, Math.min(P1_MAX_X, x));
+      this.p1Pos.x = Math.max(P1_MIN_X, Math.min(P1_MAX_X, x));
     } else {
-      this.p2Pos.x = Math.max(P2_MIN_X, Math.min(RING_RIGHT, x));
+      this.p2Pos.x = Math.max(P2_MIN_X, Math.min(P2_MAX_X, x));
     }
   }
 
@@ -228,8 +230,8 @@ export class PositionManager {
     const gap = this.p2Pos.x - this.p1Pos.x;
     if (gap < MIN_GAP) {
       const mid = (this.p1Pos.x + this.p2Pos.x) / 2;
-      this.p1Pos.x = Math.max(RING_LEFT,  Math.min(P1_MAX_X,   Math.round(mid - MIN_GAP / 2)));
-      this.p2Pos.x = Math.max(P2_MIN_X,   Math.min(RING_RIGHT, Math.round(mid + MIN_GAP / 2)));
+      this.p1Pos.x = Math.max(P1_MIN_X, Math.min(P1_MAX_X, Math.round(mid - MIN_GAP / 2)));
+      this.p2Pos.x = Math.max(P2_MIN_X, Math.min(P2_MAX_X, Math.round(mid + MIN_GAP / 2)));
     }
   }
 }
