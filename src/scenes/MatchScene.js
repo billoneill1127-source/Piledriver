@@ -106,7 +106,12 @@ export function createMatchScene(p1Data, p2Data) {
       // here and does NOT propagate up into React's event loop (which would
       // unmount the entire app and produce a white screen).
 
+      // eslint-disable-next-line no-console
+      console.log('[MatchScene] create() done — MatchEvents listeners registering');
+
       const unsubStamina = MatchEvents.on('stamina', (vals) => {
+        // eslint-disable-next-line no-console
+        console.log('[MatchScene] stamina event received', vals);
         try {
           this._lastStamina = vals;
           // Safety net: if a wrestler's stamina drops into pin range while
@@ -125,6 +130,8 @@ export function createMatchScene(p1Data, p2Data) {
       });
 
       const unsubDamage = MatchEvents.on('damage', ({ wrestlerId }) => {
+        // eslint-disable-next-line no-console
+        console.log('[MatchScene] damage event received — wrestlerId:', wrestlerId, 'p1Active:', this.p1Sprite?.active, 'p2Active:', this.p2Sprite?.active);
         try {
           const sprite = wrestlerId === p1Data.id ? this.p1Sprite : this.p2Sprite;
           if (sprite?.active) sprite.setState('hit');
@@ -134,6 +141,8 @@ export function createMatchScene(p1Data, p2Data) {
       });
 
       const unsubTurnResult = MatchEvents.on('turnResult', (res) => {
+        // eslint-disable-next-line no-console
+        console.log('[MatchScene] turnResult received — result:', res.result, 'attacker:', res.attackerId);
         try {
           this._animator.animate(res, () => {
             try { this._applyRestingStates(res); }
