@@ -4,6 +4,22 @@ import { WrestlerSprite }  from '../sprites/WrestlerSprite.js';
 import { MoveAnimator }    from '../sprites/MoveAnimator.js';
 import { PositionManager } from '../sprites/PositionManager.js';
 
+const WRESTLERS = [
+  'bulk_bogan',
+  'el_aguilia_blanca',
+  'mike_milkman',
+  'nick_olympia',
+  'tank_thompson',
+];
+
+const ANIMS = [
+  { tag: 'Idle',         start: 0,  end: 2,  frameRate: 6,  repeat: -1 },
+  { tag: 'Strike',       start: 3,  end: 5,  frameRate: 12, repeat: 0  },
+  { tag: 'Hit Reaction', start: 6,  end: 8,  frameRate: 10, repeat: 0  },
+  { tag: 'Down',         start: 9,  end: 11, frameRate: 6,  repeat: 0  },
+  { tag: 'Victory',      start: 12, end: 14, frameRate: 6,  repeat: -1 },
+];
+
 /**
  * Factory that closes over wrestler data so the scene doesn't rely on
  * Phaser's scene-data mechanism.
@@ -14,7 +30,29 @@ export function createMatchScene(p1Data, p2Data) {
       super({ key: 'MatchScene' });
     }
 
+    preload() {
+      WRESTLERS.forEach(id => {
+        this.load.spritesheet(id,
+          `src/assets/sprites/${id}.png`,
+          { frameWidth: 32, frameHeight: 32 }
+        );
+        this.load.json(`${id}_data`, `src/assets/sprites/${id}.json`);
+      });
+    }
+
     create() {
+      // ── Phaser animations (25 total: 5 wrestlers × 5 tags) ───────────────
+      WRESTLERS.forEach(id => {
+        ANIMS.forEach(({ tag, start, end, frameRate, repeat }) => {
+          this.anims.create({
+            key:       `${id}_${tag}`,
+            frames:    this.anims.generateFrameNumbers(id, { start, end }),
+            frameRate,
+            repeat,
+          });
+        });
+      });
+
       // ── Ring background ─────────────────────────────────────────────────
       this.add.rectangle(400, 300, 800, 600, 0x0d0d1a);
       this.add.rectangle(400, 322, 660, 390, 0x4a2e10); // apron
@@ -40,6 +78,7 @@ export function createMatchScene(p1Data, p2Data) {
       // ── Wrestler sprites ─────────────────────────────────────────────────
       const MAT_BOTTOM = 452;
       const P1_X = 230, P2_X = 570;
+      const LABEL_OFFSET = 32 * 3 + 8; // frame height × scale + gap
 
       this.p1Sprite = new WrestlerSprite(this, P1_X, MAT_BOTTOM, p1Data, 'right');
       this.p2Sprite = new WrestlerSprite(this, P2_X, MAT_BOTTOM, p2Data, 'left');
@@ -54,9 +93,9 @@ export function createMatchScene(p1Data, p2Data) {
 
       // ── Name labels ──────────────────────────────────────────────────────
       const txtStyle = { fontFamily: 'monospace', fontSize: '10px' };
-      this.add.text(P1_X, MAT_BOTTOM - this.p1Sprite._spriteH - 8, p1Data.name,
+      this.add.text(P1_X, MAT_BOTTOM - LABEL_OFFSET, p1Data.name,
         { ...txtStyle, color: '#44ccff' }).setOrigin(0.5, 1);
-      this.add.text(P2_X, MAT_BOTTOM - this.p2Sprite._spriteH - 8, p2Data.name,
+      this.add.text(P2_X, MAT_BOTTOM - LABEL_OFFSET, p2Data.name,
         { ...txtStyle, color: '#ff7777' }).setOrigin(0.5, 1);
 
       // ── Stamina cache (updated by 'stamina' event) ───────────────────────

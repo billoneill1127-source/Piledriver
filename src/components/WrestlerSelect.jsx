@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import wrestlersData from '../data/wrestlers.json';
-import { drawWrestler, computeSize } from '../sprites/drawWrestler.js';
 
 // ── Stat definitions ────────────────────────────────────────────────────────
 
@@ -20,34 +19,30 @@ function fmtHeight(inches) {
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-const CANVAS_W = 60;
-const CANVAS_H = 80;
-
-function WrestlerCanvas({ wrestler }) {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-    const natural = computeSize(wrestler);
-    const scale   = Math.min(CANVAS_W / natural.w, CANVAS_H / natural.h);
-    const sw      = Math.round(natural.w * scale);
-    const sh      = Math.round(natural.h * scale);
-    ctx.save();
-    ctx.translate(Math.round((CANVAS_W - sw) / 2), CANVAS_H - sh);
-    drawWrestler(ctx, wrestler, { width: sw, height: sh });
-    ctx.restore();
-  }, [wrestler.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
+/**
+ * Renders the first idle frame (top-left 32×32 crop) of a wrestler's
+ * sprite sheet as a 2× scaled pixel-art preview.
+ */
+function WrestlerPreview({ wrestler }) {
   return (
-    <canvas
-      ref={canvasRef}
-      width={CANVAS_W}
-      height={CANVAS_H}
-      style={{ imageRendering: 'pixelated', display: 'block', flexShrink: 0 }}
-    />
+    <div style={{
+      width: 32,
+      height: 32,
+      overflow: 'hidden',
+      imageRendering: 'pixelated',
+      transform: 'scale(2)',
+      transformOrigin: 'top left',
+      flexShrink: 0,
+    }}>
+      <img
+        src={`/src/assets/sprites/${wrestler.id}.png`}
+        alt={wrestler.name}
+        style={{
+          imageRendering: 'pixelated',
+          display: 'block',
+        }}
+      />
+    </div>
   );
 }
 
@@ -88,7 +83,7 @@ function WrestlerCard({ wrestler, selected, disabled, accentColor, onSelect }) {
       }}
     >
       {/* Sprite preview */}
-      <WrestlerCanvas wrestler={wrestler} />
+      <WrestlerPreview wrestler={wrestler} />
 
       {/* Name + stats */}
       <div style={{ flex: 1, minWidth: 0 }}>

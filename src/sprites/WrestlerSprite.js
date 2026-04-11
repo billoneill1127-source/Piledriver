@@ -1,9 +1,11 @@
 /**
  * WrestlerSprite.js
  *
- * Phaser.GameObjects.Container subclass that renders a 16-bit style wrestler
- * sprite using Phaser Graphics objects. Origin is at the wrestler's feet
- * (bottom-center), matching the mat-contact point used in MatchScene.
+ * Phaser.GameObjects.Sprite subclass that plays hand-crafted pixel art
+ * animations from Aseprite-exported sprite sheets.
+ *
+ * Origin is at bottom-center (0.5, 1) so the y coordinate always
+ * represents the wrestler's feet on the mat — matching PositionManager.
  *
  * Usage:
  *   const sprite = new WrestlerSprite(scene, x, matY, wrestlerData, 'right');
@@ -12,9 +14,11 @@
  */
 
 import Phaser from 'phaser';
-import { drawWrestler, computeSize } from './drawWrestler.js';
 
-export class WrestlerSprite extends Phaser.GameObjects.Container {
+const FRAME_H = 32;
+const SCALE   = 3;
+
+export class WrestlerSprite extends Phaser.GameObjects.Sprite {
   /**
    * @param {Phaser.Scene} scene
    * @param {number} x         — horizontal center
@@ -23,210 +27,99 @@ export class WrestlerSprite extends Phaser.GameObjects.Container {
    * @param {'left'|'right'} facing
    */
   constructor(scene, x, y, wrestler, facing = 'right') {
-    super(scene, x, y);
+    super(scene, x, y, wrestler.id, 0);
 
     this._wrestler = wrestler;
     this._facing   = facing;
     this._state    = 'idle';
     this._baseX    = x;
     this._baseY    = y;
-    this._tweens   = [];
 
-    const { w, h } = computeSize(wrestler);
-    this._spriteW = w;
-    this._spriteH = h;
+    // Exposed so MatchScene can position name labels above the sprite
+    this._spriteH = FRAME_H * SCALE;
 
-    // Main graphics layer — offset so container origin = bottom-center
-    this._gfx = scene.add.graphics();
-    this._gfx.setPosition(-Math.round(w / 2), -h);
-    this.add(this._gfx);
+    this.setOrigin(0.5, 1);
+    this.setScale(SCALE);
 
-    // Hit-flash overlay (white, normally invisible)
-    this._flashGfx = scene.add.graphics();
-    this._flashGfx.setPosition(-Math.round(w / 2), -h);
-    this._flashGfx.setAlpha(0);
-    this.add(this._flashGfx);
+    // P2 faces left
+    if (facing === 'left') this.setFlipX(true);
 
-    // Mirror for left-facing wrestlers
-    if (facing === 'left') this.setScale(-1, 1);
-
-    this._draw('idle');
-    this._startIdle();
+    this.play(`${wrestler.id}_Idle`);
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
-  /** Transition to a new animation state. */
+  /**
+   * Transition to a new animation state.
+   * @param {string} state
+   * @returns {this}
+   */
   setState(state) {
-    if (this._state === state) return;
+    if (this._state === state) return this;
     this._state = state;
-    this._clearTweens();
-    this._resetTransform();
 
-    this._draw(state);
+    // Clear any pending on-complete callbacks from the previous animation
+    this.off('animationcomplete');
+
+    const id = this._wrestler.id;
 
     switch (state) {
-      case 'idle':      this._startIdle();      break;
-      case 'hit':       this._startHit();       break;
-      case 'down':      this._startDown();      break;
-      case 'stunned':   this._startStunned();   break;
-      case 'grounded':  this._startGrounded();  break;
-      case 'victory':   this._startVictory();   break;
-      case 'celebrate': this._startCelebrate(); break;
-      default:          this._startIdle();
-    }
-    return this; // chainable
-  }
+      case 'idle':
+        this.anims.setTimeScale(1);
+        this.play(`${id}_Idle`);
+        break;
 
-  // ── Drawing ────────────────────────────────────────────────────────────────
-
-  _draw(state) {
-    const gfx = this._gfx;
-    gfx.clear();
-    const isVictory   = state === 'victory' || state === 'celebrate';
-    const isSmiling   = isVictory;
-    drawWrestler(gfx, this._wrestler, {
-      width:   this._spriteW,
-      height:  this._spriteH,
-      victory: isVictory,
-      smile:   isSmiling,
-    });
-  }
-
-  _drawFlash() {
-    const gfx = this._flashGfx;
-    if (!gfx?.active) return;
-    gfx.clear();
-    // Draw a solid white silhouette: fill every rect/circle in white by
-    // temporarily overriding fillStyle calls through a shim.
-    const origFillStyle = gfx.fillStyle.bind(gfx);
-    gfx.fillStyle = () => origFillStyle(0xffffff, 1);
-    drawWrestler(gfx, this._wrestler, { width: this._spriteW, height: this._spriteH });
-    gfx.fillStyle = origFillStyle;
-  }
-
-  // ── Transform helpers ──────────────────────────────────────────────────────
-
-  _resetTransform() {
-    this.y      = this._baseY;
-    this.angle  = 0;
-    this._flashGfx.setAlpha(0);
-    this._flashGfx.clear();
-  }
-
-  _clearTweens() {
-    // killTweensOf is the reliable API — avoids isPlaying() which doesn't
-    // exist in Phaser 3.90 and caused the tween accumulation crash.
-    this.scene.tweens.killTweensOf(this);
-    this.scene.tweens.killTweensOf(this._flashGfx);
-    this._tweens = [];
-  }
-
-  _addTween(config) {
-    const t = this.scene.tweens.add({ targets: this, ...config });
-    this._tweens.push(t);
-    return t;
-  }
-
-  // ── Animation states ───────────────────────────────────────────────────────
-
-  _startIdle() {
-    // Gentle vertical bob ±3 px, 800 ms
-    this._addTween({
-      y:        this._baseY - 3,
-      duration: 800,
-      ease:     'Sine.easeInOut',
-      yoyo:     true,
-      repeat:   -1,
-    });
-  }
-
-  _startHit() {
-    this._drawFlash();
-    if (this._flashGfx?.active) this._flashGfx.setAlpha(1);
-    // Fade out the flash overlay, then return to idle
-    this._addTween({
-      targets:    this._flashGfx,
-      alpha:      0,
-      duration:   200,
-      ease:       'Linear',
-      onComplete: () => {
-        if (this._flashGfx?.active) this._flashGfx.clear();
-        if (this._state === 'hit') {
-          this._state = 'idle';
-          this._startIdle();
-        }
-      },
-    });
-  }
-
-  _startDown() {
-    // Tip over to 90° — direction depends on facing so the sprite falls away
-    const targetAngle = this._facing === 'right' ? 90 : -90;
-    // Move origin so feet go down while body tips horizontally
-    this._addTween({
-      angle:    targetAngle,
-      y:        this._baseY - Math.round(this._spriteW / 2),
-      duration: 400,
-      ease:     'Quad.easeIn',
-    });
-  }
-
-  _startStunned() {
-    // Lean forward toward center of ring — positive for right-facing, negative for left
-    this.angle = this._facing === 'right' ? 9 : -9;
-    // Slower, deeper bob: 4px over 1200ms (wobbly, dazed)
-    this._addTween({
-      y:        this._baseY - 4,
-      duration: 1200,
-      ease:     'Sine.easeInOut',
-      yoyo:     true,
-      repeat:   -1,
-    });
-  }
-
-  _startGrounded() {
-    // Same fall as 'down' — holds on the mat until next animation clears it
-    const targetAngle = this._facing === 'right' ? 90 : -90;
-    this._addTween({
-      angle:    targetAngle,
-      y:        this._baseY - Math.round(this._spriteW / 2),
-      duration: 400,
-      ease:     'Quad.easeIn',
-    });
-  }
-
-  _startVictory() {
-    // Slow vertical bob while arms are raised
-    this._addTween({
-      y:        this._baseY - 5,
-      duration: 600,
-      ease:     'Sine.easeInOut',
-      yoyo:     true,
-      repeat:   -1,
-    });
-  }
-
-  _startCelebrate() {
-    // Arms raised (victory pose) + exuberant bounce: jump 8px, repeat twice fast,
-    // then settle into a slower victory bob
-    this.scene.tweens.add({
-      targets:  this,
-      y:        this._baseY - 8,
-      duration: 200,
-      ease:     'Quad.easeOut',
-      yoyo:     true,
-      repeat:   2,
-      onComplete: () => {
-        if (this._state !== 'celebrate' || !this.active) return;
-        this._addTween({
-          y:        this._baseY - 4,
-          duration: 600,
-          ease:     'Sine.easeInOut',
-          yoyo:     true,
-          repeat:   -1,
+      case 'strike':
+        this.anims.setTimeScale(1);
+        this.play(`${id}_Strike`);
+        this.once('animationcomplete', () => {
+          if (this._state === 'strike') this.setState('idle');
         });
-      },
-    });
+        break;
+
+      case 'hit':
+        this.anims.setTimeScale(1);
+        this.play(`${id}_Hit Reaction`);
+        this.once('animationcomplete', () => {
+          if (this._state === 'hit') this.setState('idle');
+        });
+        break;
+
+      case 'down':
+        // Play Down animation once and hold the last frame
+        this.anims.setTimeScale(1);
+        this.play(`${id}_Down`);
+        break;
+
+      case 'grounded':
+        // Same as down — wrestler is on the mat
+        this.anims.setTimeScale(1);
+        this.play(`${id}_Down`);
+        break;
+
+      case 'stunned':
+        // Slow idle bob (dazed) at half speed
+        this.play(`${id}_Idle`);
+        this.anims.setTimeScale(0.5);
+        break;
+
+      case 'victory':
+        this.anims.setTimeScale(1);
+        this.play(`${id}_Victory`);
+        break;
+
+      case 'celebrate':
+        // Victory animation at 150% speed for extra exuberance
+        this.play(`${id}_Victory`);
+        this.anims.setTimeScale(1.5);
+        break;
+
+      default:
+        this.anims.setTimeScale(1);
+        this.play(`${id}_Idle`);
+        break;
+    }
+
+    return this; // chainable
   }
 }

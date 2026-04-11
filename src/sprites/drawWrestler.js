@@ -1,3 +1,6 @@
+// Retired in Session B — replaced by Phaser spritesheet animations.
+// Kept as fallback reference.
+
 /**
  * drawWrestler.js
  *
