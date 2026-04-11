@@ -37,7 +37,7 @@ function WrestlerPreview({ wrestler }) {
       flexShrink: 0,
     }}>
       <img
-        src={`/src/assets/sprites/${wrestler.id}.png`}
+        src={`${import.meta.env.BASE_URL}sprites/${wrestler.id}.png`}
         alt={wrestler.name}
         style={{
           imageRendering: 'pixelated',

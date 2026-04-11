@@ -31,12 +31,13 @@ export function createMatchScene(p1Data, p2Data) {
     }
 
     preload() {
+      const base = import.meta.env.BASE_URL;
       WRESTLERS.forEach(id => {
         this.load.spritesheet(id,
-          `src/assets/sprites/${id}.png`,
+          `${base}sprites/${id}.png`,
           { frameWidth: 32, frameHeight: 32 }
         );
-        this.load.json(`${id}_data`, `src/assets/sprites/${id}.json`);
+        this.load.json(`${id}_data`, `${base}sprites/${id}.json`);
       });
     }
 
