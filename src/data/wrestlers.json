@@ -44,8 +44,8 @@
       "behavior": "Neutral"
     },
     {
-      "id": "el_aguilia_blanca",
-      "name": "El Aguilia Blanca",
+      "id": "el_aguila_blanca",
+      "name": "El Aguila Blanca",
       "attrs": {
         "strength": 50,
         "size": 30,

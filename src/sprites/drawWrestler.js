@@ -112,7 +112,7 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
 
   // ── Wrestler archetype flags ──────────────────────────────────────────────
   const isBogan   = id === 'bulk_bogan';
-  const isAguilia = id === 'el_aguilia_blanca';
+  const isAguila = id === 'el_aguila_blanca';
   const isTank    = id === 'tank_thompson';
   const isMilkman = id === 'mike_milkman';
 
@@ -262,8 +262,8 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
       }
     }
 
-    // El Aguilia — green shoulder trim lines along strap edges
-    if (isAguilia && footwearPal) {
+    // El Aguila — green shoulder trim lines along strap edges
+    if (isAguila && footwearPal) {
       ctx.fill(footwearPal.base);
       const trimH = Math.round(torsoH * 0.38);
       ctx.rect(torsoX + 2,           torsoTop, 2, trimH);
@@ -452,8 +452,8 @@ export function drawWrestler(rawCtx, wrestler, options = {}) {
     ctx.fill(accessPal.base);
     ctx.circle(headCX, headCY, headR);
 
-    if (isAguilia && footwearPal) {
-      // El Aguilia Blanca: white base + distinctive green accents
+    if (isAguila && footwearPal) {
+      // El Aguila Blanca: white base + distinctive green accents
       const green = footwearPal; // green boots palette reused for mask detail
 
       // Horizontal eye band

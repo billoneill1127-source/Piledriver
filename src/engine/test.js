@@ -47,7 +47,7 @@ const data     = new DataLoader(wrestlersRaw, movesRaw, outcomesRaw);
 const resolver = new OutcomeResolver(data);
 
 const bulkBogan       = data.getWrestler('bulk_bogan');
-const elAguilia       = data.getWrestler('el_aguilia_blanca');
+const elAguila       = data.getWrestler('el_aguila_blanca');
 const tankThompson    = data.getWrestler('tank_thompson');
 const nickOlympia     = data.getWrestler('nick_olympia');
 const mikeMilkman     = data.getWrestler('mike_milkman');
@@ -57,7 +57,7 @@ const mikeMilkman     = data.getWrestler('mike_milkman');
 section('DataLoader');
 
 assert(bulkBogan !== null,  'getWrestler returns Bulk Bogan');
-assert(elAguilia !== null,  'getWrestler returns El Aguilia Blanca');
+assert(elAguila !== null,  'getWrestler returns El Aguila Blanca');
 assert(data.getWrestler('nobody') === null, 'getWrestler returns null for unknown id');
 
 assert(data.getMove('piledriver') !== null, 'getMove returns piledriver');
@@ -69,11 +69,11 @@ assert(data.getOutcomes('back_body_drop', 'block') === null, 'getOutcomes return
 // Available offense moves per wrestler
 const boganOffense    = data.getAvailableMoves(bulkBogan,    'Offense');
 const milkmanOffense  = data.getAvailableMoves(mikeMilkman,  'Offense');
-const elAguiliaOff    = data.getAvailableMoves(elAguilia,    'Offense');
+const elAguilaOff    = data.getAvailableMoves(elAguila,    'Offense');
 
 console.log(`\n  Move counts (Offense):`);
 console.log(`    Bulk Bogan:      ${boganOffense.length} moves — ${boganOffense.map(m => m.id).join(', ')}`);
-console.log(`    El Aguilia:      ${elAguiliaOff.length} moves — ${elAguiliaOff.map(m => m.id).join(', ')}`);
+console.log(`    El Aguila:      ${elAguilaOff.length} moves — ${elAguilaOff.map(m => m.id).join(', ')}`);
 console.log(`    Mike Milkman:    ${milkmanOffense.length} moves — ${milkmanOffense.map(m => m.id).join(', ')}`);
 
 // Bulk Bogan (strength 90, agility 40, brains 40) should qualify for piledriver
@@ -140,18 +140,18 @@ section('OutcomeResolver');
   assert(rate > 0.35, 'bodyslam vs retreat: attr advantage increases success above base 40%');
 }
 
-// El Aguilia (agility 90) using destroyer vs retreat against Bulk Bogan (size 80)
+// El Aguila (agility 90) using destroyer vs retreat against Bulk Bogan (size 80)
 // offAttr = Agility = 90, defAttr = Size = 80 → delta = +0.01
 // base success = 0.4
 {
   const trials = 1000;
   let successes = 0;
   for (let i = 0; i < trials; i++) {
-    const { result } = resolver.resolveTurn('destroyer', 'retreat', elAguilia, bulkBogan);
+    const { result } = resolver.resolveTurn('destroyer', 'retreat', elAguila, bulkBogan);
     if (result === 'success') successes++;
   }
   const rate = successes / trials;
-  console.log(`\n  destroyer vs retreat (El Aguilia agility 90 vs Bulk Bogan size 80, ${trials} trials):`);
+  console.log(`\n  destroyer vs retreat (El Aguila agility 90 vs Bulk Bogan size 80, ${trials} trials):`);
   console.log(`    success rate: ${(rate * 100).toFixed(1)}%  (base 40%, small attr advantage)`);
   assert(rate > 0.30, 'destroyer vs retreat returns reasonable success rate');
 }
@@ -175,7 +175,7 @@ section('OutcomeResolver');
 
 // Missing table entry falls back to success
 {
-  const { result } = resolver.resolveTurn('back_body_drop', 'block', bulkBogan, elAguilia);
+  const { result } = resolver.resolveTurn('back_body_drop', 'block', bulkBogan, elAguila);
   assert(result === 'success', 'Missing outcomes entry defaults to success');
 }
 
@@ -357,18 +357,18 @@ function simulateMatch(w1, w2, maxTurns = 200) {
 }
 
 // Run the match multiple times and collect stats
-const matchResults = { bulk_bogan: 0, el_aguilia_blanca: 0, tank_thompson: 0,
+const matchResults = { bulk_bogan: 0, el_aguila_blanca: 0, tank_thompson: 0,
                        nick_olympia: 0, mike_milkman: 0 };
 const matchSims = 20;
 
 for (let i = 0; i < matchSims; i++) {
-  const { log, final, turns } = simulateMatch(bulkBogan, elAguilia);
+  const { log, final, turns } = simulateMatch(bulkBogan, elAguila);
   if (final?.winner) matchResults[final.winner] = (matchResults[final.winner] || 0) + 1;
 }
 
-console.log(`\n  Bulk Bogan vs El Aguilia Blanca (${matchSims} matches):`);
+console.log(`\n  Bulk Bogan vs El Aguila Blanca (${matchSims} matches):`);
 console.log(`    Bulk Bogan wins: ${matchResults.bulk_bogan || 0}`);
-console.log(`    El Aguilia wins: ${matchResults.el_aguilia_blanca || 0}`);
+console.log(`    El Aguila wins: ${matchResults.el_aguila_blanca || 0}`);
 
 // Run a single match with verbose logging
 console.log('\n  Single match play-by-play (Bulk Bogan vs Mike Milkman):');

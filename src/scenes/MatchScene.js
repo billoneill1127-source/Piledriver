@@ -6,7 +6,7 @@ import { PositionManager } from '../sprites/PositionManager.js';
 
 const WRESTLERS = [
   'bulk_bogan',
-  'el_aguilia_blanca',
+  'el_aguila_blanca',
   'mike_milkman',
   'nick_olympia',
   'tank_thompson',
