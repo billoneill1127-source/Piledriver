@@ -20,18 +20,20 @@ function fmtHeight(inches) {
 // ── Sub-components ───────────────────────────────────────────────────────────
 
 /**
- * Renders the first idle frame (top-left 32×32 crop) of a wrestler's
- * sprite sheet as a 2× scaled pixel-art preview.
+ * Crops the first idle frame (top-left 32×32) of the sprite sheet and
+ * renders it at 4× scale (128×128px) using real CSS dimensions so layout
+ * space matches visual size — no transform: scale() tricks.
+ *
+ * The full sheet is 96×160px. At 4× the sheet renders as 384×640px, so
+ * the first 32×32 frame occupies the top-left 128×128px of the image —
+ * exactly what the overflow:hidden clip exposes.
  */
 function WrestlerPreview({ wrestler }) {
   return (
     <div style={{
-      width: 32,
-      height: 32,
+      width: 128,
+      height: 128,
       overflow: 'hidden',
-      imageRendering: 'pixelated',
-      transform: 'scale(2)',
-      transformOrigin: 'top left',
       flexShrink: 0,
     }}>
       <img
@@ -40,6 +42,7 @@ function WrestlerPreview({ wrestler }) {
         style={{
           imageRendering: 'pixelated',
           display: 'block',
+          width: 384,   // 96px sheet × 4 = 4× scale
         }}
       />
     </div>
@@ -48,16 +51,14 @@ function WrestlerPreview({ wrestler }) {
 
 function StatBar({ value, color }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-      <div style={{
-        flex: 1,
-        height: 7,
-        background: '#1a1a30',
-        overflow: 'hidden',
-        border: '1px solid #2a2a44',
-      }}>
-        <div style={{ width: `${value}%`, height: '100%', background: color }} />
-      </div>
+    <div style={{
+      flex: 1,
+      height: 10,
+      background: '#1a1a30',
+      overflow: 'hidden',
+      border: '1px solid #2a2a44',
+    }}>
+      <div style={{ width: `${value}%`, height: '100%', background: color }} />
     </div>
   );
 }
@@ -71,18 +72,18 @@ function WrestlerCard({ wrestler, selected, disabled, accentColor, onSelect }) {
       style={{
         background: selected ? '#0c1e38' : '#14142a',
         border: `2px solid ${selected ? accentColor : disabled ? '#222240' : '#2a2a4a'}`,
-        padding: '10px 12px',
-        marginBottom: 8,
+        padding: '14px 16px',
+        marginBottom: 10,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.35 : 1,
         userSelect: 'none',
         transition: 'border-color 0.1s, background 0.1s',
         display: 'flex',
-        gap: 10,
+        gap: 18,
         alignItems: 'flex-start',
       }}
     >
-      {/* Sprite preview */}
+      {/* Sprite preview — 128×128px pixel art */}
       <WrestlerPreview wrestler={wrestler} />
 
       {/* Name + stats */}
@@ -90,28 +91,34 @@ function WrestlerCard({ wrestler, selected, disabled, accentColor, onSelect }) {
         {/* Name */}
         <div style={{
           color: selected ? accentColor : '#e0d8a0',
-          fontSize: 12,
+          fontSize: 26,
           fontWeight: 'bold',
           letterSpacing: 1,
-          marginBottom: 3,
+          marginBottom: 4,
+          lineHeight: 1.1,
         }}>
           {name}
         </div>
 
         {/* Physical summary */}
-        <div style={{ color: '#70708a', fontSize: 9, marginBottom: 9, letterSpacing: 0.5 }}>
+        <div style={{ color: '#70708a', fontSize: 14, marginBottom: 12, letterSpacing: 0.5 }}>
           {physical.build} · {fmtHeight(physical.height_in)} · {physical.weight_lb} lbs
         </div>
 
-        {/* Stat bars */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {/* Stat grid — two columns */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          columnGap: 16,
+          rowGap: 7,
+        }}>
           {STATS.map(({ key, label, color }) => (
-            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ color: '#60607a', fontSize: 8, width: 20, textAlign: 'right', flexShrink: 0, letterSpacing: 0.5 }}>
+            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ color: '#60607a', fontSize: 14, width: 30, textAlign: 'right', flexShrink: 0, letterSpacing: 0.5 }}>
                 {label}
               </span>
               <StatBar value={attrs[key]} color={color} />
-              <span style={{ color: '#80809a', fontSize: 8, width: 18, textAlign: 'right', flexShrink: 0 }}>
+              <span style={{ color: '#80809a', fontSize: 14, width: 26, textAlign: 'right', flexShrink: 0 }}>
                 {attrs[key]}
               </span>
             </div>
@@ -181,7 +188,7 @@ function PlayerPanel({ label, playerNum, selectedId, opponentId, p2IsCPU, onSele
       }}>
         <span style={{
           color: accentColor,
-          fontSize: 12,
+          fontSize: 18,
           fontWeight: 'bold',
           letterSpacing: 3,
         }}>
