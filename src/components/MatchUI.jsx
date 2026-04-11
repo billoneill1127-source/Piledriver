@@ -390,38 +390,44 @@ function MoveSelection({ p1, p2, p2IsCPU, match }) {
 // ── Match over overlay ────────────────────────────────────────────────────
 
 function MatchOverOverlay({ winner, p1, p2, onReturn, winNote }) {
-  const winnerData = winner === p1.id ? p1 : p2;
+  const winnerData  = winner === p1.id ? p1 : p2;
   const winnerColor = winner === p1.id ? P1C : P2C;
 
   return (
     <div style={{
-      position: 'fixed',        // fixed so it sits above EVERYTHING including Phaser canvas
-      top: 0, left: 0, width: '100vw', height: '100vh',
-      background: 'rgba(2, 2, 10, 0.92)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      gap: 16,
+      position: 'absolute',
+      bottom: 0, left: 0, width: '100%',
+      background: 'rgba(2, 2, 10, 0.88)',
+      borderTop: `2px solid ${winnerColor}44`,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '14px 28px',
+      boxSizing: 'border-box',
       pointerEvents: 'auto',
-      zIndex: 9999,             // guaranteed top-most
       fontFamily: FONT,
+      gap: 16,
     }}>
-      <div style={{ color: winnerColor, fontSize: 26, fontWeight: 'bold', letterSpacing: 4, textShadow: `0 0 30px ${winnerColor}` }}>
-        {winnerData.name}
-      </div>
-      <div style={{ color: GOLDC, fontSize: 18, letterSpacing: 8 }}>
-        WINS!
-      </div>
-      {winNote && (
-        <div style={{ color: '#c0c0c0', fontSize: 10, letterSpacing: 3, fontFamily: FONT }}>
-          {winNote}
+      {/* Winner text */}
+      <div>
+        <div style={{ color: winnerColor, fontSize: 20, fontWeight: 'bold', letterSpacing: 3, textShadow: `0 0 18px ${winnerColor}` }}>
+          {winnerData.name.toUpperCase()}
         </div>
-      )}
-      <div style={{ width: 200, height: 1, background: '#2a2a4a', margin: '8px 0' }} />
+        <div style={{ color: GOLDC, fontSize: 13, letterSpacing: 6, marginTop: 2 }}>
+          WINS!
+        </div>
+        {winNote && (
+          <div style={{ color: '#808098', fontSize: 9, letterSpacing: 2, marginTop: 4 }}>
+            {winNote}
+          </div>
+        )}
+      </div>
+
+      {/* Rematch button */}
       <button
         onClick={onReturn}
         style={{
-          padding: '12px 40px',
+          padding: '10px 32px',
           fontFamily: FONT,
-          fontSize: 12,
+          fontSize: 11,
           letterSpacing: 3,
           fontWeight: 'bold',
           background: '#0a0a1a',
@@ -429,7 +435,7 @@ function MatchOverOverlay({ winner, p1, p2, onReturn, winNote }) {
           border: `2px solid ${GOLDC}`,
           cursor: 'pointer',
           pointerEvents: 'auto',
-          transition: 'background 0.15s',
+          flexShrink: 0,
         }}
         onMouseEnter={e => { e.currentTarget.style.background = '#1a1400'; }}
         onMouseLeave={e => { e.currentTarget.style.background = '#0a0a1a'; }}
@@ -481,7 +487,7 @@ export default function MatchUI({ p1, p2, p2IsCPU, match, onReturn }) {
         <MoveSelection p1={p1} p2={p2} p2IsCPU={p2IsCPU} match={match} />
       )}
 
-      {phase === 'result' && (
+      {phase === 'result' && !lastResult?.matchOver && (
         <ResultBanner lastResult={lastResult} />
       )}
 

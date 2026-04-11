@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Binary reference / working files
+*.zip
+src/sprites/*.jpg
+src/sprites/*.jpeg
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

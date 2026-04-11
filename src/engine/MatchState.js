@@ -4,13 +4,16 @@
  * Tracks mutable match state: current stamina for each wrestler, who is on
  * offense, and provides pin/submission resolution.
  *
+ * Stamina reaching zero does NOT end the match. It only increases vulnerability.
+ * The only ways a match ends: successful pin or successful submission.
+ *
  * Pin check:
- *   pinDefense = currentStamina + toughness
+ *   pinDefense = max(0, currentStamina) + toughness   ← stamina floored at 0
  *   kickoutChance = min(1, pinDefense / 100)
  *   Random roll > kickoutChance → pin succeeds (defender fails to kick out)
  *
  * Submission check (single check):
- *   escapeChance = min(1, (currentStamina + toughness) / 100)
+ *   escapeChance = min(1, (max(0, currentStamina) + toughness) / 100)
  *   Random roll < escapeChance → escape; otherwise → tap out
  *
  * Submission check (double check — attacker brains > defender brains):
@@ -94,8 +97,8 @@ export class MatchState {
    * @returns {boolean}
    */
   checkPin(defender) {
-    const currentStamina = this.stamina[defender.id];
-    const pinDefense     = currentStamina + defender.attrs.toughness;
+    const staminaContrib = Math.max(0, this.stamina[defender.id]); // floor at 0, not negative
+    const pinDefense     = staminaContrib + defender.attrs.toughness;
     const kickoutChance  = Math.min(1, pinDefense / 100);
     return Math.random() > kickoutChance; // true = defender failed to kick out
   }
@@ -112,8 +115,8 @@ export class MatchState {
    * @returns {boolean}
    */
   checkSubmission(attacker, defender) {
-    const currentStamina = this.stamina[defender.id];
-    const escapeValue    = currentStamina + defender.attrs.toughness;
+    const staminaContrib = Math.max(0, this.stamina[defender.id]); // floor at 0, not negative
+    const escapeValue    = staminaContrib + defender.attrs.toughness;
     const escapeChance   = Math.min(1, escapeValue / 100);
 
     const doubleCheck = attacker.attrs.brains > defender.attrs.brains;
@@ -128,23 +131,4 @@ export class MatchState {
     return Math.random() >= escapeChance; // true = submitted
   }
 
-  // ── Match end ─────────────────────────────────────────────────────────────
-
-  /**
-   * Returns the winner's id if either wrestler is at 0 stamina, otherwise null.
-   * If both somehow reach 0 simultaneously, the offensive player wins
-   * (the one who dealt the final blow).
-   *
-   * @returns {string|null}
-   */
-  isMatchOver() {
-    const ids = Object.keys(this.stamina);
-    for (const id of ids) {
-      if (this.stamina[id] <= 0) {
-        // This wrestler is out — the other one wins
-        return ids.find(i => i !== id);
-      }
-    }
-    return null;
-  }
 }

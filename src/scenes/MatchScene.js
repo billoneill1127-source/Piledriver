@@ -13,11 +13,11 @@ const WRESTLERS = [
 ];
 
 const ANIMS = [
-  { tag: 'Idle',         start: 0,  end: 2,  frameRate: 6,  repeat: -1 },
-  { tag: 'Strike',       start: 3,  end: 5,  frameRate: 12, repeat: 0  },
-  { tag: 'Hit Reaction', start: 6,  end: 8,  frameRate: 10, repeat: 0  },
-  { tag: 'Down',         start: 9,  end: 11, frameRate: 6,  repeat: 0  },
-  { tag: 'Victory',      start: 12, end: 14, frameRate: 6,  repeat: -1 },
+  { tag: 'Idle',         start: 0,  end: 2,  frameRate: 4,  repeat: -1 },
+  { tag: 'Strike',       start: 3,  end: 5,  frameRate: 8,  repeat: 0  },
+  { tag: 'Hit Reaction', start: 6,  end: 8,  frameRate: 7,  repeat: 0  },
+  { tag: 'Down',         start: 9,  end: 11, frameRate: 4,  repeat: 0  },
+  { tag: 'Victory',      start: 12, end: 14, frameRate: 4,  repeat: -1 },
 ];
 
 /**
@@ -90,14 +90,6 @@ export function createMatchScene(p1Data, p2Data) {
         this, this.p1Sprite, this.p2Sprite, p1Data, p2Data, this._posMgr,
       );
 
-      // ── Name labels ──────────────────────────────────────────────────────
-      const txtStyle = { fontFamily: 'monospace', fontSize: '10px' };
-      const labelY   = MAT_BOTTOM - this.p1Sprite._spriteH - 8;
-      this.add.text(P1_X, labelY, p1Data.name,
-        { ...txtStyle, color: '#44ccff' }).setOrigin(0.5, 1);
-      this.add.text(P2_X, labelY, p2Data.name,
-        { ...txtStyle, color: '#ff7777' }).setOrigin(0.5, 1);
-
       // ── Stamina cache (updated by 'stamina' event) ───────────────────────
       this._lastStamina = { [p1Data.id]: Infinity, [p2Data.id]: Infinity };
 
@@ -106,12 +98,7 @@ export function createMatchScene(p1Data, p2Data) {
       // here and does NOT propagate up into React's event loop (which would
       // unmount the entire app and produce a white screen).
 
-      // eslint-disable-next-line no-console
-      console.log('[MatchScene] create() done — MatchEvents listeners registering');
-
       const unsubStamina = MatchEvents.on('stamina', (vals) => {
-        // eslint-disable-next-line no-console
-        console.log('[MatchScene] stamina event received', vals);
         try {
           this._lastStamina = vals;
           // Safety net: if a wrestler's stamina drops into pin range while
@@ -121,7 +108,7 @@ export function createMatchScene(p1Data, p2Data) {
             { id: p2Data.id, sprite: this.p2Sprite },
           ].forEach(({ id, sprite }) => {
             if ((vals[id] ?? Infinity) < 20 && sprite?.active && sprite._state === 'idle') {
-              sprite.setState('grounded');
+              sprite.setAnimState('grounded');
             }
           });
         } catch (err) {
@@ -129,20 +116,11 @@ export function createMatchScene(p1Data, p2Data) {
         }
       });
 
-      const unsubDamage = MatchEvents.on('damage', ({ wrestlerId }) => {
-        // eslint-disable-next-line no-console
-        console.log('[MatchScene] damage event received — wrestlerId:', wrestlerId, 'p1Active:', this.p1Sprite?.active, 'p2Active:', this.p2Sprite?.active);
-        try {
-          const sprite = wrestlerId === p1Data.id ? this.p1Sprite : this.p2Sprite;
-          if (sprite?.active) sprite.setState('hit');
-        } catch (err) {
-          console.error('[MatchScene] damage handler threw:', err);
-        }
+      const unsubDamage = MatchEvents.on('damage', () => {
+        // Animation handled by MoveAnimator at point of impact
       });
 
       const unsubTurnResult = MatchEvents.on('turnResult', (res) => {
-        // eslint-disable-next-line no-console
-        console.log('[MatchScene] turnResult received — result:', res.result, 'attacker:', res.attackerId);
         try {
           this._animator.animate(res, () => {
             try { this._applyRestingStates(res); }
@@ -166,10 +144,8 @@ export function createMatchScene(p1Data, p2Data) {
 
           const winnerSprite = winner === p1Data.id ? this.p1Sprite : this.p2Sprite;
           const loserSprite  = winner === p1Data.id ? this.p2Sprite : this.p1Sprite;
-          if (winnerSprite?.active) winnerSprite.setState('victory');
-          if (loserSprite?.active)  loserSprite.setState('down');
-          const winnerName = winner === p1Data.id ? p1Data.name : p2Data.name;
-          this._showWinnerBanner(winnerName);
+          if (winnerSprite?.active) winnerSprite.setAnimState('victory');
+          if (loserSprite?.active)  loserSprite.setAnimState('down');
         } catch (err) {
           console.error('[MatchScene] matchOver handler threw:', err);
         }
@@ -194,42 +170,30 @@ export function createMatchScene(p1Data, p2Data) {
       // ── Defender resting state ──────────────────────────────────────────
       if (res.result === 'success') {
         if (defStamina <= 0 || res.damage >= 12) {
-          if (defSprite?.active) defSprite.setState('grounded');
+          if (defSprite?.active) defSprite.setAnimState('grounded');
         } else if (res.damage > 0) {
-          if (defSprite?.active) defSprite.setState('stunned');
+          if (defSprite?.active) defSprite.setAnimState('stunned');
         } else {
-          if (defSprite?.active) defSprite.setState('idle');
+          if (defSprite?.active) defSprite.setAnimState('idle');
         }
       } else if (res.result === 'reversal') {
         // Original defender reversed successfully — they're fresh
-        if (defSprite?.active) defSprite.setState('idle');
+        if (defSprite?.active) defSprite.setAnimState('idle');
       } else {
         // escape or block
-        if (defSprite?.active) defSprite.setState('idle');
+        if (defSprite?.active) defSprite.setAnimState('idle');
       }
 
       // ── Attacker resting state ──────────────────────────────────────────
       if (res.result === 'success') {
         if (atkSprite?.active) {
-          atkSprite.setState(res.damage >= 12 ? 'celebrate' : 'idle');
+          atkSprite.setAnimState(res.damage >= 12 ? 'celebrate' : 'idle');
         }
       } else {
         // escape, block, reversal — attacker lost control or took damage
-        if (atkSprite?.active) atkSprite.setState('stunned');
+        if (atkSprite?.active) atkSprite.setAnimState('stunned');
       }
     }
 
-    // ── Visual helpers ──────────────────────────────────────────────────────
-
-    _showWinnerBanner(name) {
-      const W = 800, H = 600;
-      this.add.rectangle(W / 2, H / 2, 480, 80, 0x000000, 0.85);
-      this.add.text(W / 2, H / 2, `${name} WINS!`, {
-        fontSize: '28px',
-        color: '#ffd700',
-        fontFamily: 'monospace',
-        fontStyle: 'bold',
-      }).setOrigin(0.5);
-    }
   };
 }

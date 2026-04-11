@@ -195,9 +195,10 @@ section('MatchState');
   ms.applyDamage('mike_milkman', 50);
   assert(ms.getStamina('mike_milkman') === 0, 'applyDamage floors at 0 (no negative stamina)');
 
-  assert(ms.isMatchOver() === 'bulk_bogan', 'isMatchOver returns winner id when defender hits 0');
+  // Stamina at 0 does NOT end the match
+  assert(typeof ms.isMatchOver === 'undefined', 'isMatchOver does not exist — stamina 0 is not a KO');
 
-  // Stamina recovery — Bogan starts at 70, apply damage then recover
+  // Stamina recovery
   const ms2 = new MatchState(bulkBogan, mikeMilkman);
   ms2.applyDamage('bulk_bogan', 20);
   assert(ms2.getStamina('bulk_bogan') === 50, 'Damage applied correctly');
@@ -215,40 +216,101 @@ section('MatchState');
   assert(ms3.defensivePlayerId === 'bulk_bogan',   'After swap: wrestler1 on defense');
 }
 
-// Pin check at stamina < 20 (should pin often)
+// ── NEW TEST 1: pin defense floor is toughness-only at 0 stamina ──────────
+// Pin defense should use max(0, stamina) — no negative contribution.
 {
-  const ms = new MatchState(bulkBogan, mikeMilkman);
-  ms.applyDamage('mike_milkman', 25); // Milkman now at 5 stamina
+  // Milkman: toughness 15. At 0 stamina → pinDefense = 0 + 15 = 15 → kickoutChance = 0.15
+  // At 5 stamina → pinDefense = 5 + 15 = 20 → kickoutChance = 0.20
+  // Both cases should produce different (but both high) pin rates.
+  // Crucially, 0 stamina should NOT produce a lower pinDefense than toughness alone.
+  let pins0 = 0, pins5 = 0;
+  const trials = 1000;
+  for (let i = 0; i < trials; i++) {
+    const msA = new MatchState(bulkBogan, mikeMilkman);
+    msA.applyDamage('mike_milkman', 30); // stamina exactly 0
+    if (msA.checkPin(mikeMilkman)) pins0++;
 
-  // pinDefense = 5 + 15 (toughness) = 20 → kickoutChance = 0.20
-  // pin should succeed ~80% of the time
-  let pins = 0;
-  for (let i = 0; i < 500; i++) {
-    const ms_ = new MatchState(bulkBogan, mikeMilkman);
-    ms_.applyDamage('mike_milkman', 25);
-    if (ms_.checkPin(mikeMilkman)) pins++;
+    const msB = new MatchState(bulkBogan, mikeMilkman);
+    msB.applyDamage('mike_milkman', 25); // stamina = 5
+    if (msB.checkPin(mikeMilkman)) pins5++;
   }
-  const pinRate = pins / 500;
-  console.log(`\n  checkPin (Milkman at 5 stamina, toughness 15 → pinDefense 20, kickoutChance 20%):`);
-  console.log(`    pin success rate: ${(pinRate * 100).toFixed(1)}%  (expected ≈ 80%)`);
-  assert(pinRate > 0.65 && pinRate < 0.95, 'checkPin succeeds ~80% when stamina is very low');
+  const rate0 = pins0 / trials;
+  const rate5 = pins5 / trials;
+  console.log(`\n  checkPin stamina floor test (${trials} trials each):`);
+  console.log(`    At 0 stamina (pinDefense=15, kickout 15%): pin rate ${(rate0*100).toFixed(1)}%  expected ≈85%`);
+  console.log(`    At 5 stamina (pinDefense=20, kickout 20%): pin rate ${(rate5*100).toFixed(1)}%  expected ≈80%`);
+  assert(rate0 > 0.75, 'Pin rate at 0 stamina ≈85% (toughness-only floor)');
+  assert(rate5 > 0.70, 'Pin rate at 5 stamina ≈80%');
+  // 0 stamina should pin at least as often as 5 stamina (pinDefense is lower)
+  assert(rate0 >= rate5 - 0.08, 'Pin rate at 0 stamina is not lower than at 5 stamina (within noise)');
 }
 
-// Submission: Nick Olympia (brains 90) vs Mike Milkman (brains 30) at low stamina
+// ── NEW TEST 2: wrestler at 0 stamina survives by kicking out ─────────────
+{
+  // Force Milkman to 0 stamina, then verify checkPin can return false
+  // (meaning he kicked out). With toughness=15, kickoutChance=0.15,
+  // so ~15% of attempts should see him survive.
+  let kickouts = 0;
+  const trials = 500;
+  for (let i = 0; i < trials; i++) {
+    const ms = new MatchState(bulkBogan, mikeMilkman);
+    ms.applyDamage('mike_milkman', 30); // 0 stamina
+    if (!ms.checkPin(mikeMilkman)) kickouts++; // checkPin false = kicked out
+  }
+  const kickoutRate = kickouts / trials;
+  console.log(`\n  Wrestler at 0 stamina can kick out (${trials} trials):`);
+  console.log(`    Kickout rate: ${(kickoutRate * 100).toFixed(1)}%  (expected ≈15% — toughness 15 only)`);
+  assert(kickoutRate > 0.05, 'Wrestler at 0 stamina can kick out (match does not auto-end)');
+}
+
+// ── NEW TEST 3: match does not terminate from damage alone ────────────────
+{
+  // Run a full match where we force all offense to use retreat (0 damage defense)
+  // and we manually drain stamina to 0, then verify the match only ends via pin/sub.
+  // We simulate using TurnManager but intercept to drain stamina artificially.
+  const ms = new MatchState(bulkBogan, mikeMilkman);
+  const res = new OutcomeResolver(data);
+  const tm  = new TurnManager(ms, res, data);
+
+  // Drain Milkman to 0 stamina directly
+  ms.applyDamage('mike_milkman', 30);
+  assert(ms.getStamina('mike_milkman') === 0, 'Stamina is 0 before turn');
+
+  // Execute a turn — match should NOT be over unless pin/sub triggered
+  // Use punch vs retreat (low reversal risk, 0 damage on non-success).
+  // Run 20 turns; on turns where pin is NOT offered or pin fails, match continues.
+  let matchEndedViaDamageAlone = false;
+  let pinOrSubSeen = false;
+  for (let t = 0; t < 50; t++) {
+    if (ms.getStamina('mike_milkman') > 0) ms.applyDamage('mike_milkman', ms.getStamina('mike_milkman')); // keep at 0
+    const attacker = tm.getAttacker();
+    const defender = tm.getDefender();
+    const tr = tm.executeTurn('punch', 'retreat');
+    if (tr.matchOver && !tr.pinResult && !tr.submissionResult) {
+      matchEndedViaDamageAlone = true;
+      break;
+    }
+    if (tr.pinResult || tr.submissionResult) { pinOrSubSeen = true; break; }
+  }
+  assert(!matchEndedViaDamageAlone, 'Match does not terminate from damage alone — only pin/sub ends it');
+  console.log(`\n  Damage-only termination test: matchEndedViaDamageAlone=${matchEndedViaDamageAlone}, pinOrSubSeen=${pinOrSubSeen}`);
+}
+
+// ── Submission check at 0 stamina ─────────────────────────────────────────
 {
   let subs = 0;
   const trials = 500;
   for (let i = 0; i < trials; i++) {
     const ms = new MatchState(nickOlympia, mikeMilkman);
-    ms.applyDamage('mike_milkman', 22); // Milkman at 8 stamina
-    // escapeValue = 8 + 15 = 23 → escapeChance = 0.23
-    // Nick brains 90 > Milkman brains 30 → double check → P(escape) ≈ 0.23^2 ≈ 5.3%
+    ms.applyDamage('mike_milkman', 30); // Milkman at 0 stamina
+    // escapeValue = 0 + 15 = 15 → escapeChance = 0.15
+    // Nick brains 90 > Milkman brains 30 → double check → P(escape) ≈ 0.15^2 ≈ 2.25%
     if (ms.checkSubmission(nickOlympia, mikeMilkman)) subs++;
   }
   const subRate = subs / trials;
-  console.log(`\n  checkSubmission double-check (Nick Olympia brains 90 vs Milkman brains 30, Milkman at 8 stamina):`);
-  console.log(`    submission rate: ${(subRate * 100).toFixed(1)}%  (expected ≈ 95% — double check, escapeChance=23%)`);
-  assert(subRate > 0.75, 'double-check submission nearly always succeeds at low stamina');
+  console.log(`\n  checkSubmission at 0 stamina (Nick Olympia vs Milkman, double-check, escapeChance=15%):`);
+  console.log(`    submission rate: ${(subRate * 100).toFixed(1)}%  (expected ≈ 97.75%)`);
+  assert(subRate > 0.85, 'Submission nearly guaranteed at 0 stamina under double-check');
 }
 
 // ── TurnManager full match simulation ─────────────────────────────────────
@@ -336,15 +398,20 @@ assert(turns <= 200, 'Match completes within turn limit');
   const ms2 = new MatchState(bulkBogan, mikeMilkman);
   const tm2 = new TurnManager(ms2, new OutcomeResolver(data), data);
 
-  // Manually drain Milkman stamina
-  ms2.applyDamage('mike_milkman', 25); // 5 stamina remaining
+  // Drain Milkman to exactly 0 stamina
+  ms2.applyDamage('mike_milkman', 30); // 0 stamina
 
   // First turn — lastDefenderId should be null → no pin yet
   assert(!tm2.checkPinOpportunity(), 'No pin offered on first turn (lastDefenderId is null)');
 
   // Simulate a success result manually by setting lastDefenderId
   tm2.lastDefenderId = 'mike_milkman';
-  assert(tm2.checkPinOpportunity(), 'Pin offered after consecutive defense with stamina < 20');
+  assert(tm2.checkPinOpportunity(), 'Pin offered after consecutive defense with stamina <= 0');
+
+  // Pin NOT offered if stamina is 1 (must be <= 0, not just low)
+  ms2.stamina['mike_milkman'] = 1;
+  assert(!tm2.checkPinOpportunity(), 'Pin NOT offered when stamina is 1 (threshold is <= 0)');
+  ms2.stamina['mike_milkman'] = 0;
 
   // After a non-success (offense switch), pin resets
   tm2.lastDefenderId = null;

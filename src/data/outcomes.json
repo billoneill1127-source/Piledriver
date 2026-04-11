@@ -1,13 +1,648 @@
-[
-  {
-    "id": "clean_hit",
-    "condition": "accuracy_check_pass",
-    "damage_multiplier": 1.0,
-    "commentary": [
-      "{attacker} connects with {move}!",
-      "{attacker} lands {move} clean!"
-    ],
-    "momentum_delta": 10,
-    "crowd_reaction": "cheer"
+{
+  "forearm": {
+    "block": {
+      "success": 0.8,
+      "escape": 0.0,
+      "block": 0.2,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.8,
+      "escape": 0.2,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.9,
+      "escape": 0.0,
+      "block": 0.1,
+      "reversal": 0.0
+    },
+    "counter": {
+      "success": 0.8,
+      "escape": 0.0,
+      "block": 0.0,
+      "reversal": 0.2
+    },
+    "duck": {
+      "success": 0.6,
+      "escape": 0.4,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.9,
+      "escape": 0.0,
+      "block": 0.1,
+      "reversal": 0.0
+    }
+  },
+  "kick": {
+    "block": {
+      "success": 0.7,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.7,
+      "escape": 0.3,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.85,
+      "escape": 0.0,
+      "block": 0.15,
+      "reversal": 0.0
+    },
+    "counter": {
+      "success": 0.7,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.2
+    },
+    "duck": {
+      "success": 0.6,
+      "escape": 0.4,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.85,
+      "escape": 0.0,
+      "block": 0.15,
+      "reversal": 0.0
+    }
+  },
+  "punch": {
+    "block": {
+      "success": 0.8,
+      "escape": 0.0,
+      "block": 0.2,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.8,
+      "escape": 0.2,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.9,
+      "escape": 0.0,
+      "block": 0.1,
+      "reversal": 0.0
+    },
+    "counter": {
+      "success": 0.8,
+      "escape": 0.0,
+      "block": 0.0,
+      "reversal": 0.2
+    },
+    "duck": {
+      "success": 0.6,
+      "escape": 0.4,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.9,
+      "escape": 0.0,
+      "block": 0.1,
+      "reversal": 0.0
+    }
+  },
+  "headlock": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.55,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.15
+    }
+  },
+  "full_nelson": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.55,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.15
+    }
+  },
+  "bodyslam": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.55,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.15
+    }
+  },
+  "standing_suplex": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.55,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.15
+    }
+  },
+  "belly_to_back_suplex": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.5,
+      "escape": 0.5,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.55,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.15
+    }
+  },
+  "lariat": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.55,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.15
+    }
+  },
+  "ddt": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.55,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.15
+    }
+  },
+  "bulldog": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.55,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.15
+    }
+  },
+  "piledriver": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.55,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.15
+    }
+  },
+  "boston_crab": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.6,
+      "escape": 0.4,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.55,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.15
+    }
+  },
+  "destroyer": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.55,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.15
+    }
+  },
+  "sleeper": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.55,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.15
+    }
+  },
+  "figure_four": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.6,
+      "escape": 0.4,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.55,
+      "escape": 0.0,
+      "block": 0.3,
+      "reversal": 0.15
+    }
+  },
+  "super_kick": {
+    "block": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.5,
+      "reversal": 0.0
+    },
+    "retreat": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "lock_up": {
+      "success": 0.5,
+      "escape": 0.0,
+      "block": 0.4,
+      "reversal": 0.1
+    },
+    "counter": {
+      "success": 0.6,
+      "escape": 0.1,
+      "block": 0.0,
+      "reversal": 0.3
+    },
+    "duck": {
+      "success": 0.4,
+      "escape": 0.6,
+      "block": 0.0,
+      "reversal": 0.0
+    },
+    "overpower": {
+      "success": 0.65,
+      "escape": 0.0,
+      "block": 0.35,
+      "reversal": 0.0
+    }
   }
-]
+}

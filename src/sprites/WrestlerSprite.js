@@ -10,7 +10,7 @@
  * Usage:
  *   const sprite = new WrestlerSprite(scene, x, matY, wrestlerData, 'right');
  *   scene.add.existing(sprite);
- *   sprite.setState('hit');
+ *   sprite.setAnimState('hit');
  */
 
 import Phaser from 'phaser';
@@ -54,24 +54,15 @@ export class WrestlerSprite extends Phaser.GameObjects.Sprite {
    * @param {string} state
    * @returns {this}
    */
-  setState(state) {
+  setAnimState(state) {
     if (this._state === state) return this;
     this._state = state;
-
-    // Clear any pending on-complete callbacks from the previous animation
     this.off('animationcomplete');
-
     const id = this._wrestler.id;
-
-    // Always reset timeScale before playing so prior stunned/celebrate
-    // rates don't bleed into the next state
-    this.anims.setTimeScale(1);
+    this.anims.timeScale = 1;
 
     const _play = (key) => {
-      const exists = this.scene.anims.exists(key);
-      // eslint-disable-next-line no-console
-      console.log('[WrestlerSprite] setState:', state, '→', key, exists ? '✓' : '✗ MISSING');
-      if (exists) this.play(key);
+      if (this.scene.anims.exists(key)) this.play(key);
     };
 
     switch (state) {
@@ -82,14 +73,14 @@ export class WrestlerSprite extends Phaser.GameObjects.Sprite {
       case 'strike':
         _play(`${id}_Strike`);
         this.once('animationcomplete', () => {
-          if (this._state === 'strike') this.setState('idle');
+          if (this._state === 'strike') this.setAnimState('idle');
         });
         break;
 
       case 'hit':
         _play(`${id}_Hit Reaction`);
         this.once('animationcomplete', () => {
-          if (this._state === 'hit') this.setState('idle');
+          if (this._state === 'hit') this.setAnimState('idle');
         });
         break;
 
@@ -105,7 +96,7 @@ export class WrestlerSprite extends Phaser.GameObjects.Sprite {
       case 'stunned':
         // Slow idle bob (dazed) at half speed
         _play(`${id}_Idle`);
-        this.anims.setTimeScale(0.5);
+        this.anims.timeScale = 0.5;
         break;
 
       case 'victory':
@@ -114,7 +105,7 @@ export class WrestlerSprite extends Phaser.GameObjects.Sprite {
 
       case 'celebrate':
         _play(`${id}_Victory`);
-        this.anims.setTimeScale(1.5);
+        this.anims.timeScale = 1.5;
         break;
 
       default:

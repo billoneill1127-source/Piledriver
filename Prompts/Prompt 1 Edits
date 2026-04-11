@@ -1,0 +1,7 @@
+A few thoughts before we create the first prompt.
+
+1. If a player (or CPU) is successful in executing its move, it remains on offense for the next turn.  This repeats until the defense blocks, escapes or reverses, at which point they are on offense the next turn.
+2. after a turn in which the offensive player is successful in executing its move, check the defending player's remaining stamina.  if less than 20, offer the offensive player and opportunity to go for a pin.  Add defending player's toughness to its remaining stamina to get its chance to defend (or kick out) of the pin.  Offensive player stays on offense.
+3. For each turn a player remains on offense, add 5 points back to their stamina, with a maximum of their beginning stamina.
+4. In the case of a submission check, add defensive players remaining stamina to its toughness to get its chance to escape the submission.  Damage from the move is still assessed.
+5. In the case of an escaped submission, if the offensive player has a higher brains rating than the defensive player, require two checks of submission before allowing escape.  If defender fails either check they have submitted.

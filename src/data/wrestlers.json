@@ -1,16 +1,171 @@
-[
-  {
-    "id": "stone_cold",
-    "name": "Stone Cold Steve Austin",
-    "nickname": "The Texas Rattlesnake",
-    "attributes": {
-      "strength": 85,
-      "agility": 72,
-      "stamina": 90,
-      "technical": 78,
-      "charisma": 95
+{
+  "_schema": {
+    "attrs": {
+      "strength": "Affects power move success and damage",
+      "size": "Affects ability to resist throws and slams",
+      "speed": "Affects strike move success and initiative",
+      "agility": "Affects aerial and evasion move success",
+      "brains": "Affects submission and technical move success",
+      "excitement": "Cosmetic only \u2014 no current game function",
+      "stamina": "Wrestler health pool \u2014 reaches 0 = match over",
+      "toughness": "Resistance to submission tapouts and pin kickouts"
+    }
+  },
+  "wrestlers": [
+    {
+      "id": "bulk_bogan",
+      "name": "Bulk Bogan",
+      "attrs": {
+        "strength": 90,
+        "size": 80,
+        "speed": 40,
+        "agility": 40,
+        "brains": 40,
+        "excitement": 80,
+        "stamina": 70,
+        "toughness": 30
+      },
+      "physical": {
+        "height_in": 78,
+        "weight_lb": 280,
+        "build": "Jacked",
+        "skin_color": "tan"
+      },
+      "appearance": {
+        "costume_type": "trunks",
+        "costume_color": "light blue",
+        "footwear_type": "boots",
+        "footwear_color": "light blue",
+        "hairstyle": "long",
+        "hair_color": "blonde",
+        "accessory": "wristbands",
+        "accessory_color": "light blue"
+      },
+      "behavior": "Neutral"
     },
-    "finisher": "stunner",
-    "sprite": "stone_cold.png"
-  }
-]
+    {
+      "id": "el_aguilia_blanca",
+      "name": "El Aguilia Blanca",
+      "attrs": {
+        "strength": 50,
+        "size": 30,
+        "speed": 80,
+        "agility": 90,
+        "brains": 70,
+        "excitement": 80,
+        "stamina": 80,
+        "toughness": 30
+      },
+      "physical": {
+        "height_in": 70,
+        "weight_lb": 190,
+        "build": "Slim",
+        "skin_color": "tan"
+      },
+      "appearance": {
+        "costume_type": "Singlet",
+        "costume_color": "white",
+        "footwear_type": "boots",
+        "footwear_color": "green",
+        "hairstyle": "none",
+        "hair_color": "none",
+        "accessory": "mask",
+        "accessory_color": "white"
+      },
+      "behavior": "Good"
+    },
+    {
+      "id": "tank_thompson",
+      "name": "Tank Thompson",
+      "attrs": {
+        "strength": 80,
+        "size": 70,
+        "speed": 60,
+        "agility": 50,
+        "brains": 50,
+        "excitement": 60,
+        "stamina": 70,
+        "toughness": 35
+      },
+      "physical": {
+        "height_in": 67,
+        "weight_lb": 260,
+        "build": "Jacked",
+        "skin_color": "dark brown"
+      },
+      "appearance": {
+        "costume_type": "trunks",
+        "costume_color": "orange",
+        "footwear_type": "shoes",
+        "footwear_color": "black",
+        "hairstyle": "short",
+        "hair_color": "black",
+        "accessory": "weight belt",
+        "accessory_color": "brown"
+      },
+      "behavior": "Neutral"
+    },
+    {
+      "id": "nick_olympia",
+      "name": "Nick Olympia",
+      "attrs": {
+        "strength": 50,
+        "size": 50,
+        "speed": 50,
+        "agility": 70,
+        "brains": 90,
+        "excitement": 40,
+        "stamina": 90,
+        "toughness": 40
+      },
+      "physical": {
+        "height_in": 70,
+        "weight_lb": 225,
+        "build": "Muscular",
+        "skin_color": "white"
+      },
+      "appearance": {
+        "costume_type": "singlet",
+        "costume_color": "royal blue",
+        "footwear_type": "boots",
+        "footwear_color": "red",
+        "hairstyle": "medium",
+        "hair_color": "brown",
+        "accessory": "headgear",
+        "accessory_color": "red"
+      },
+      "behavior": "Good"
+    },
+    {
+      "id": "mike_milkman",
+      "name": "Mike Milkman",
+      "attrs": {
+        "strength": 10,
+        "size": 30,
+        "speed": 30,
+        "agility": 30,
+        "brains": 30,
+        "excitement": 10,
+        "stamina": 30,
+        "toughness": 15
+      },
+      "physical": {
+        "height_in": 72,
+        "weight_lb": 190,
+        "build": "slim",
+        "skin_color": "white"
+      },
+      "appearance": {
+        "costume_type": "trunks",
+        "costume_color": "brown",
+        "footwear_type": "boots",
+        "footwear_color": "brown",
+        "hairstyle": "none",
+        "hair_color": "none",
+        "accessory": "kneepads",
+        "accessory_color": "brown"
+      },
+      "behavior": "Neutral"
+    }
+  ]
+}

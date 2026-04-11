@@ -1,0 +1,105 @@
+I am building a turn-based 2D wrestling game called Piledriver using 
+React + Vite + Phaser 3. The project is already scaffolded.
+
+Data files are in /src/data/:
+- wrestlers.json  (5 wrestlers with attrs, physical, appearance)
+- moves.json      (23 moves — offensive and defensive)
+- outcomes.json   (probability table keyed by offense_id → defense_id)
+
+Read all three files before writing any code.
+
+Key attribute rules from wrestlers.json _schema:
+- stamina = health pool (match ends at 0)
+- toughness = resistance to pin kickouts and submission tapouts
+- excitement = no game function yet, ignore it
+- all other attrs modify move success probability per the
+  adjust_by_offense_attr / adjust_by_defense_attr fields in moves.json
+
+═══════════════════════════════════════
+TURN LOOP RULES — implement exactly as described
+═══════════════════════════════════════
+
+TURN START (before move selection):
+  If the same player is still on defense AND their stamina < 20:
+    → Offer the offensive player a pin attempt before any move choice
+    → Pin defense value = defender's remaining stamina + defender's toughness
+    → Roll against pin defense value to determine kickout
+    → If pin succeeds → match over
+    → If pin fails → continue to move selection as normal
+    → Offensive player remains on offense either way
+
+MOVE RESOLUTION (each turn):
+  1. Offensive player chooses from their available offense moves
+  2. Defensive player (or CPU) chooses from their available defense moves
+  3. Look up base probabilities in outcomes.json [offense_id][defense_id]
+  4. Adjust probabilities using attacker and defender attributes:
+       - adjust_by_offense_attr from moves.json → use attacker's stat value
+       - adjust_by_defense_attr from moves.json → use defender's stat value
+       - Higher attacker stat nudges success probability up
+       - Higher defender stat nudges success probability down
+  5. Roll against final probabilities → one of: success | escape | block | reversal
+  6. If reversal → execute the counter_move from moves.json automatically
+
+AFTER RESOLUTION:
+  - Apply damage to the appropriate wrestler (from move's damage field)
+  - If result was success → offensive player stays on offense
+  - If result was escape | block | reversal → defensive player becomes 
+    the new offensive player next turn
+  - If result was success → add 5 stamina to offensive player 
+    (capped at their starting stamina value)
+
+SUBMISSION CHECKS:
+  - Triggered when a submission move succeeds
+  - Defender escape value = remaining stamina + toughness
+  - Roll against escape value
+  - If attacker brains > defender brains:
+      Defender must PASS TWO checks to escape
+      Failing either check = submission = match over
+  - Otherwise: single check, pass = escape, fail = submission
+  - Damage from the move is assessed regardless of submission outcome
+
+AVAILABLE MOVES:
+  - getAvailableMoves(wrestler, type) filters moves.json by type 
+    ('Offense' | 'Defense') and returns only moves where the wrestler
+    meets ALL attribute requirements (min_strength, min_agility, 
+    min_experience — treat experience as brains for this lookup)
+
+═══════════════════════════════════════
+FILES TO CREATE
+═══════════════════════════════════════
+
+/src/engine/DataLoader.js
+  - Loads and exposes all three JSON files
+  - Provides getAvailableMoves(wrestler, type) as described above
+
+/src/engine/OutcomeResolver.js
+  - resolveTurn(offenseMove, defenseMove, attacker, defender)
+  - Implements probability lookup, attribute adjustment, and roll
+  - Returns: { result, reversalMoveId } 
+    where result is 'success' | 'escape' | 'block' | 'reversal'
+
+/src/engine/MatchState.js
+  - Tracks current stamina for both wrestlers
+  - Tracks who is currently on offense
+  - applyDamage(wrestlerId, amount)
+  - checkPin(defender) → boolean (true = pinned)
+  - checkSubmission(attacker, defender) → boolean (true = submitted)
+    implementing the single vs double check rule based on brains comparison
+  - addStamina(wrestlerId, amount) — adds 5, capped at starting stamina
+  - isMatchOver() → returns winner id or null
+
+/src/engine/TurnManager.js
+  - Orchestrates the full turn loop as described above
+  - executeTurn(offenseMoveId, defenseMoveId) → returns full turn 
+    result object containing:
+      { result, damage, newOffensivePlayer, matchOver, winner,
+        pinOffered, pinResult, submissionResult, staminaRecovered }
+  - checkPinOpportunity() → returns true if pin should be offered
+    this turn (same defender, stamina < 20)
+  - CPU logic: weighted random selection from available moves,
+    weighted by wrestler brains attribute
+
+Write clean ES6 modules with JSDoc comments. No React, no Phaser —
+pure logic only. After writing each file, write a simple console
+test that exercises it so we can verify the logic works before 
+moving on to visuals.

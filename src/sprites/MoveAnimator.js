@@ -58,6 +58,13 @@ export class MoveAnimator {
     // Capture grapple point BEFORE positions are updated by applyResult
     const grappleX = this._pm.getGrapplePoint();
 
+    // Impact callback — fires at the moment the attack connects
+    const onImpact = () => {
+      if (res.damage > 0) {
+        if (defSprite?.active) defSprite.setAnimState('hit');
+      }
+    };
+
     const settle = () => {
       // Update position records based on move result
       this._pm.applyResult(res);
@@ -70,10 +77,12 @@ export class MoveAnimator {
 
     if (category === 'grapple' || category === 'slam') {
       this._lockUp(atkSprite, defSprite, grappleX, () => {
-        this._attempt(atkSprite, defSprite, dir, category, grappleX, settle);
+        if (atkSprite?.active) atkSprite.setAnimState('strike');
+        this._attempt(atkSprite, defSprite, dir, category, grappleX, onImpact, settle);
       });
     } else {
-      this._attempt(atkSprite, defSprite, dir, category, grappleX, settle);
+      if (atkSprite?.active) atkSprite.setAnimState('strike');
+      this._attempt(atkSprite, defSprite, dir, category, grappleX, onImpact, settle);
     }
   }
 
@@ -83,7 +92,7 @@ export class MoveAnimator {
     let arrived = 0;
     const onBothArrived = () => {
       if (++arrived < 2) return;
-      this._scene.time.delayedCall(150, cb);
+      this._scene.time.delayedCall(225, cb);
     };
 
     this._scene.tweens.killTweensOf(atkSprite);
@@ -91,23 +100,23 @@ export class MoveAnimator {
 
     this._scene.tweens.add({
       targets: atkSprite, x: grappleX,
-      duration: 250, ease: 'Power1',
+      duration: 375, ease: 'Power1',
       onComplete: onBothArrived,
     });
     this._scene.tweens.add({
       targets: defSprite, x: grappleX,
-      duration: 250, ease: 'Power1',
+      duration: 375, ease: 'Power1',
       onComplete: onBothArrived,
     });
   }
 
   // ── Attempt ───────────────────────────────────────────────────────────────
 
-  _attempt(atkSprite, defSprite, dir, category, grappleX, cb) {
+  _attempt(atkSprite, defSprite, dir, category, grappleX, onImpact, cb) {
     switch (category) {
-      case 'slam':    this._attemptSlam(atkSprite, dir, cb);                     break;
-      case 'grapple': this._attemptGrapple(atkSprite, defSprite, dir, cb);       break;
-      default:        this._attemptStrike(atkSprite, defSprite, dir, cb);        break;
+      case 'slam':    this._attemptSlam(atkSprite, dir, onImpact, cb);                     break;
+      case 'grapple': this._attemptGrapple(atkSprite, defSprite, dir, onImpact, cb);       break;
+      default:        this._attemptStrike(atkSprite, defSprite, dir, onImpact, cb);        break;
     }
   }
 
@@ -115,7 +124,7 @@ export class MoveAnimator {
    * strike / aerial — attacker closes to within 60px of the defender's
    * current recorded position (200ms), then throws a 40px lunge (100ms yoyo).
    */
-  _attemptStrike(atkSprite, defSprite, dir, cb) {
+  _attemptStrike(atkSprite, defSprite, dir, onImpact, cb) {
     const defId    = defSprite === this._p1Sprite ? this._p1Data.id : this._p2Data.id;
     const defPos   = this._pm.getPos(defId);
     const approachX = defPos.x - dir * 60;
@@ -123,12 +132,13 @@ export class MoveAnimator {
     this._scene.tweens.killTweensOf(atkSprite);
     this._scene.tweens.add({
       targets: atkSprite, x: approachX,
-      duration: 200, ease: 'Power1',
+      duration: 300, ease: 'Power1',
       onComplete: () => {
+        onImpact();
         this._scene.tweens.add({
           targets:  atkSprite,
           x:        approachX + dir * 40,
-          duration: 100,
+          duration: 150,
           ease:     'Quad.easeOut',
           yoyo:     true,
           onComplete: cb,
@@ -141,16 +151,17 @@ export class MoveAnimator {
    * slam — wind-up (step back 20px) then drive forward (15px).
    * Attacker is already at grappleX after lock-up.
    */
-  _attemptSlam(atkSprite, dir, cb) {
+  _attemptSlam(atkSprite, dir, onImpact, cb) {
     const centerX = atkSprite.x; // = grappleX after lock-up
     this._scene.tweens.killTweensOf(atkSprite);
     this._scene.tweens.add({
       targets: atkSprite, x: centerX - dir * 20,
-      duration: 100, ease: 'Power1',
+      duration: 150, ease: 'Power1',
       onComplete: () => {
+        onImpact();
         this._scene.tweens.add({
           targets: atkSprite, x: centerX + dir * 15,
-          duration: 150, ease: 'Power2',
+          duration: 225, ease: 'Power2',
           onComplete: cb,
         });
       },
@@ -161,23 +172,25 @@ export class MoveAnimator {
    * grapple — both wrestlers nudge toward each other and back (struggle).
    * Both are already at grappleX after lock-up.
    */
-  _attemptGrapple(atkSprite, defSprite, dir, cb) {
+  _attemptGrapple(atkSprite, defSprite, dir, onImpact, cb) {
     const atkX = atkSprite.x;
     const defX = defSprite.x;
     let done = 0;
-    const onBothDone = () => { if (++done === 2) cb(); };
+    const onBothDone = () => {
+      if (++done === 2) { onImpact(); cb(); }
+    };
 
     this._scene.tweens.killTweensOf(atkSprite);
     this._scene.tweens.killTweensOf(defSprite);
 
     this._scene.tweens.add({
       targets: atkSprite, x: atkX + dir * 10,
-      duration: 100, ease: 'Sine.easeInOut',
+      duration: 150, ease: 'Sine.easeInOut',
       yoyo: true, onComplete: onBothDone,
     });
     this._scene.tweens.add({
       targets: defSprite, x: defX - dir * 10,
-      duration: 100, ease: 'Sine.easeInOut',
+      duration: 150, ease: 'Sine.easeInOut',
       yoyo: true, onComplete: onBothDone,
     });
   }
@@ -202,11 +215,11 @@ export class MoveAnimator {
 
     this._scene.tweens.add({
       targets: atkSprite, x: atkPos.x, y: atkPos.y,
-      duration: 300, ease: 'Power1', onComplete: onBothDone,
+      duration: 450, ease: 'Power1', onComplete: onBothDone,
     });
     this._scene.tweens.add({
       targets: defSprite, x: defPos.x, y: defPos.y,
-      duration: 300, ease: 'Power1', onComplete: onBothDone,
+      duration: 450, ease: 'Power1', onComplete: onBothDone,
     });
   }
 }

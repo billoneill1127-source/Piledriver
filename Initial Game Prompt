@@ -1,0 +1,53 @@
+I am building a turn-based 2D wrestling game called Piledriver using 
+React + Vite + Phaser 3. The project is already scaffolded. 
+
+Data files are in /src/data/:
+- wrestlers.json  (5 wrestlers with attrs, physical, appearance)
+- moves.json      (23 moves — offensive and defensive)
+- outcomes.json   (probability table keyed by offense_id → defense_id)
+
+Read all three files before writing any code.
+
+Key attribute rules from wrestlers.json _schema:
+- stamina = health pool (match ends at 0)
+- toughness = resistance to pin kickouts and submission tapouts
+- excitement = no game function yet, ignore it
+- all other attrs modify move success probability per the 
+  adjust_by_offense_attr / adjust_by_defense_attr fields in moves.json
+
+Build the game engine only — no visuals yet. Create these files:
+
+/src/engine/DataLoader.js
+  - Loads and exposes wrestlers.json, moves.json, outcomes.json
+  - Provides helper: getAvailableMoves(wrestler, type) that filters 
+    moves by type ('Offense'|'Defense') and returns only moves the 
+    wrestler meets the attribute requirements for
+
+/src/engine/OutcomeResolver.js
+  - resolveTurn(offenseMove, defenseMove, attacker, defender)
+  - Looks up base probabilities from outcomes.json
+  - Adjusts probabilities using attacker/defender attributes per 
+    adjust_by_offense_attr and adjust_by_defense_attr
+  - Rolls against final probabilities
+  - Returns one of: 'success' | 'escape' | 'block' | 'reversal'
+  - If reversal: also returns the reversal move id from 
+    counter_move field in moves.json
+
+/src/engine/MatchState.js
+  - Tracks stamina for both wrestlers (initialized from wrestler data)
+  - applyDamage(wrestlerId, amount) — reduces stamina
+  - checkPin(wrestler) — rolls against toughness to determine kickout
+  - checkSubmission(wrestler) — rolls against toughness to determine tapout
+  - isMatchOver() — returns winner id or null
+
+/src/engine/TurnManager.js
+  - Orchestrates a single turn: 
+    getOffenseMoves(wrestler) → player chooses → 
+    getDefenseMoves(wrestler) → player/CPU chooses → 
+    resolves outcome → applies damage → returns full turn result object
+  - CPU logic: weighted random selection from available moves, 
+    weighted by wrestler brains attribute
+
+Write clean ES6 modules with JSDoc comments. No React, no Phaser — 
+pure logic only. After writing each file, write a simple console 
+test that exercises it so we can verify it works before moving on.
