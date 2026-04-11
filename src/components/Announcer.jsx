@@ -122,9 +122,8 @@ export function Announcer({ commentaryLine, commentarySpeaker }) {
   return (
     <div style={{
       position:      'absolute',
-      bottom:        20,
-      left:          '50%',
-      transform:     'translateX(-50%)',
+      bottom:        48,
+      left:          4,
       width:         380,
       display:       'flex',
       alignItems:    'flex-end',

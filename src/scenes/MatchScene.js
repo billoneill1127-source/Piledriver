@@ -55,29 +55,35 @@ export function createMatchScene(p1Data, p2Data) {
       });
 
       // ── Ring background ─────────────────────────────────────────────────
+      // MAT_BOTTOM = 356 (raised 96px vs old 452 — gives front-facing perspective).
+      // Front face (y=356–452) is the visible apron face below the mat edge.
       this.add.rectangle(400, 300, 800, 600, 0x0d0d1a);
-      this.add.rectangle(400, 322, 660, 390, 0x4a2e10); // apron
-      this.add.rectangle(400, 312, 596, 280, 0xc8b896); // mat
+      // Outer apron: back strip + side borders + front face (y≈127–452)
+      this.add.rectangle(400, 290, 660, 325, 0x4a2e10);
+      // Mat surface (y=172–356)
+      this.add.rectangle(400, 264, 596, 184, 0xc8b896);
+      // Front face shading — darker than apron to sell depth
+      this.add.rectangle(400, 404, 596, 96, 0x2e1b08);
 
       // ── Ropes and posts ─────────────────────────────────────────────────
       const g = this.add.graphics();
       const RL = 102, RR = 698;
 
       g.lineStyle(3, 0xf0d070, 1);
-      [145, 158, 172].forEach(y => g.lineBetween(RL, y, RR, y)); // top ropes
-      [452, 465, 478].forEach(y => g.lineBetween(RL, y, RR, y)); // bottom ropes
+      [145, 158, 172].forEach(y => g.lineBetween(RL, y, RR, y)); // back ropes
+      [330, 343, 356].forEach(y => g.lineBetween(RL, y, RR, y)); // front ropes
 
       g.lineStyle(3, 0xf0d070, 0.5);
-      g.lineBetween(RL, 145, RL, 478); // left side
-      g.lineBetween(RR, 145, RR, 478); // right side
+      g.lineBetween(RL, 145, RL, 330); // left side
+      g.lineBetween(RR, 145, RR, 330); // right side
 
       g.fillStyle(0x8b6914, 1);
-      [[RL, 145], [RR, 145], [RL, 478], [RR, 478]].forEach(([x, y]) => {
+      [[RL, 145], [RR, 145], [RL, 330], [RR, 330]].forEach(([x, y]) => {
         g.fillRect(x - 7, y - 7, 14, 14);
       });
 
       // ── Wrestler sprites ─────────────────────────────────────────────────
-      const MAT_BOTTOM = 452;
+      const MAT_BOTTOM = 356;
       const P1_X = 230, P2_X = 570;
 
       this.p1Sprite = new WrestlerSprite(this, P1_X, MAT_BOTTOM, p1Data, 'right');

@@ -19,7 +19,7 @@
 
 const P1_START = 230;
 const P2_START = 570;
-const MAT_Y    = 452;
+const MAT_Y    = 356;
 
 const RING_LEFT  = 120;
 const RING_RIGHT = 680;
